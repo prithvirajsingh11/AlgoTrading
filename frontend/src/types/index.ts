@@ -337,3 +337,134 @@ export interface OHLCVBar {
   close: number;
   volume: number;
 }
+
+export interface PaperTradingSessionSummary {
+  session_id: string;
+  created_at: string;
+  started_at?: string | null;
+  stopped_at?: string | null;
+  dataset_id: string;
+  symbols: string[];
+  timeframe: string;
+  strategy: string;
+  strategy_params: Record<string, any>;
+  provider: string;
+  initial_capital: number;
+  current_equity: number;
+  cash: number;
+  realized_pnl: number;
+  unrealized_pnl: number;
+  current_exposure: number;
+  speed: string;
+  status: "CREATED" | "RUNNING" | "PAUSED" | "STOPPED" | "ERROR";
+  error_message?: string | null;
+  current_bar_index: number;
+  total_bars: number;
+  simulation_timestamp?: string | null;
+}
+
+export interface PaperOrderRecord {
+  order_id: string;
+  session_id: string;
+  timestamp: string;
+  symbol: string;
+  side: "BUY" | "SELL";
+  order_type: "MARKET" | "LIMIT" | "STOP_LOSS";
+  quantity: number;
+  requested_price?: number | null;
+  fill_price?: number | null;
+  status: "PENDING" | "FILLED" | "CANCELLED" | "REJECTED";
+  commission: number;
+  slippage: number;
+  rejection_reason?: string | null;
+  strategy_name?: string;
+  provider?: string;
+}
+
+export interface PaperPositionRecord {
+  symbol: string;
+  quantity: number;
+  avg_entry_price: number;
+  current_price: number;
+  market_value: number;
+  unrealized_pnl: number;
+  unrealized_pnl_pct: number;
+  direction: "LONG" | "SHORT";
+}
+
+export interface PaperEventRecord {
+  event_id?: number;
+  event_type: string;
+  timestamp: string;
+  session_id: string;
+  symbol?: string;
+  close?: number;
+  open?: number;
+  high?: number;
+  low?: number;
+  volume?: number;
+  signal_type?: string;
+  approved?: boolean;
+  reason?: string;
+  order_id?: string;
+  side?: string;
+  quantity?: number;
+  fill_price?: number;
+  total_equity?: number;
+  cash?: number;
+  realized_pnl?: number;
+  status?: string;
+  message?: string;
+  [key: string]: any;
+}
+
+export interface CreatePaperSessionPayload {
+  dataset_id: string;
+  symbols?: string[];
+  timeframe?: string;
+  strategy: string;
+  strategy_params?: Record<string, any>;
+  provider?: string;
+  initial_capital?: number;
+  speed?: string;
+  allow_shorting?: boolean;
+  start_date?: string;
+  end_date?: string;
+  execution_config?: {
+    commission_fixed?: number;
+    commission_percent?: number;
+    slippage_bps?: number;
+  };
+  risk_config?: {
+    max_position_pct?: number;
+    max_drawdown_limit?: number;
+    allow_shorting?: boolean;
+    position_size_pct?: number;
+  };
+}
+
+export interface PaperExportResult {
+  session: PaperTradingSessionSummary;
+  summary: {
+    initial_capital: number;
+    current_equity: number;
+    net_profit: number;
+    return_pct: number;
+    realized_pnl: number;
+    unrealized_pnl: number;
+    total_trades: number;
+    total_orders: number;
+    total_bars_replayed: number;
+    status: string;
+  };
+  equity_curve: Array<{
+    timestamp: string;
+    equity: number;
+    cash: number;
+    realized_pnl: number;
+    unrealized_pnl: number;
+  }>;
+  trades: any[];
+  orders: PaperOrderRecord[];
+  events_sample: PaperEventRecord[];
+}

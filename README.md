@@ -688,38 +688,22 @@ frontend/
 7. **Jev AI Lab:** Inspect Jev operational status, configured model, and decision cache statistics. Test the zero-lookahead market context evaluator and inspect structured AI decisions (`BUY`, `SELL`, `HOLD`, `NO_ACTION`) with confidence scores and latencies.
 8. **Model / Provider Comparison:** Side-by-side benchmark matrix evaluating Traditional Rule-Based vs Supervised XGBoost vs Jev Advisory AI under identical initial capital and risk constraints.
 9. **Portfolio & Position Manager:** Real-time simulated account balance, margin exposure, and open positions. Dedicated multi-asset pairs view displaying both legs (e.g. AAPL Long / MSFT Short) and combined net P&L.
-10. **Paper Trading Console:** Simulation interface with prominent "PAPER TRADING / NO REAL MONEY" warnings.
+10. **Paper Trading Console:** End-to-end simulated paper trading environment with configurable historical replay, speed controls (0.5x to MAX), real-time WebSocket telemetry, interactive order audit log with risk rejection tracking, and JSON performance export.
 11. **Settings:** Configurable FastAPI service base URL with live connection diagnostics and research defaults.
 
-### Screenshot Placeholders
+---
 
-```
-+---------------------------------------------------------------------------------------------+
-|                                    [SCREENSHOT PLACEHOLDER]                                 |
-|                                        AlgoTrade Dashboard                                  |
-|     (Portfolio Equity, Available Cash, Recent Equity Curves, and Strategy Registry)        |
-+---------------------------------------------------------------------------------------------+
-|                                    [SCREENSHOT PLACEHOLDER]                                 |
-|                                         Backtest Lab                                        |
-|     (Interactive Candlestick Chart, Trade Execution Markers, Underwater Drawdown Curve)     |
-+---------------------------------------------------------------------------------------------+
-|                                    [SCREENSHOT PLACEHOLDER]                                 |
-|                                     Strategy Research Lab                                   |
-|      (Multi-Strategy Comparison Matrix: Momentum vs Mean Reversion vs Pairs Trading)       |
-+---------------------------------------------------------------------------------------------+
-|                                    [SCREENSHOT PLACEHOLDER]                                 |
-|                                     Machine Learning Lab                                    |
-|      (XGBoost Training, Classification Confusion Matrix vs Real-World Trading Metrics)      |
-+---------------------------------------------------------------------------------------------+
-|                                    [SCREENSHOT PLACEHOLDER]                                 |
-|                                      Jev AI Decision Lab                                    |
-|      (Zero-Lookahead Market Context Evaluator and Structured Probabilistic Decisions)       |
-+---------------------------------------------------------------------------------------------+
-|                                    [SCREENSHOT PLACEHOLDER]                                 |
-|                                    Experiment Inspector                                     |
-|      (Cryptographic Config SHA-256 Hash Verification, Full Trade Logs, and Execution Stats) |
-+---------------------------------------------------------------------------------------------+
-```
+## Phase 12 — End-to-End Paper Trading System
+
+Phase 12 introduces a deterministic, real-time paper trading engine designed for live algorithm simulation without live capital or exchange connections:
+
+- **Pluggable Market Data Architecture:** Abstract `MarketDataProvider` with concrete `HistoricalReplayProvider` supporting single and multi-asset pairs replay with zero lookahead bias.
+- **Speed-Controlled Async Simulation:** Supports `0.5x`, `1x`, `2x`, `5x`, `10x`, and `MAX` execution speeds driven by background `asyncio` event loops.
+- **Deterministic State Machine:** Managed lifecycle transitions (`CREATED` → `RUNNING` ↔ `PAUSED` → `STOPPED` / `ERROR`) with manual step-by-step single-bar advancement.
+- **Authoritative Risk Controls:** All generated signals pass through `RiskManager` (concentration limits, drawdown limits, cash sufficiency, position sizing) before execution. Rejections emit `RiskValidationEvent` and are recorded in `paper_orders`.
+- **Persistent SQLite Audit Storage:** Sessions, orders, and event logs persist to SQLite (`paper_sessions.db`).
+- **Real-Time WebSocket Streaming:** Bi-directional event stream via `/api/v1/paper/ws/{session_id}` emitting `MARKET_BAR`, `STRATEGY_SIGNAL`, `RISK_VALIDATION`, `ORDER_FILLED`, and `PORTFOLIO_SNAPSHOT` events.
+- **Interactive React Console:** Real-time HUD displaying equity, cash, unrealized/realized P&L, exposure, live price charts, open positions, order tables with rejection reasons, filterable event logs, and JSON export.
 
 ### Development & Build Commands
 
@@ -728,7 +712,7 @@ frontend/
 # Run FastAPI server with auto-reload
 python -m uvicorn backend.app.main:app --reload --port 8000
 
-# Run complete backend test suite (139 passing tests)
+# Run complete backend test suite (148 passing tests, 1 skipped)
 pytest backend/tests -v
 ```
 
@@ -741,7 +725,7 @@ npm install
 # Start Vite local development server (port 3000)
 npm run dev
 
-# Run automated Vitest frontend test suite
+# Run automated Vitest frontend test suite (6 passing tests)
 npm test
 
 # Production build and TypeScript type-check

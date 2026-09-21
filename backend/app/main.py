@@ -49,6 +49,13 @@ app.include_router(experiments_router, prefix=api_v1_prefix)
 app.include_router(ai_router, prefix=api_v1_prefix)
 app.include_router(ml_router, prefix=api_v1_prefix)
 
+from backend.app.api.routes_paper import paper_ws_handler
+from fastapi import WebSocket
+
+@app.websocket("/ws/paper/{session_id}")
+async def direct_paper_ws(websocket: WebSocket, session_id: str):
+    await paper_ws_handler(websocket, session_id)
+
 
 @app.get("/health", tags=["Health"])
 def health_check():
