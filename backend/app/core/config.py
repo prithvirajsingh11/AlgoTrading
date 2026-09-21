@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     debug: bool = True
     host: str = "0.0.0.0"
     port: int = 8000
+    log_level: str = "INFO"
 
     # Persistence
     database_url: Optional[str] = "sqlite+aiosqlite:///./data/algotrade.db"
@@ -24,6 +25,16 @@ class Settings(BaseSettings):
     # Paths
     base_dir: Path = Path(__file__).resolve().parent.parent.parent.parent
     data_dir: Path = Path(__file__).resolve().parent.parent.parent.parent / "data"
+    paper_data_path: Optional[Path] = None
+
+    # Resource & Rate Safeguards
+    max_dataset_rows: int = 500_000
+    max_sweep_combinations: int = 100
+    max_concurrent_experiments: int = 10
+    max_paper_sessions: int = 25
+
+    # CORS
+    cors_origins: str = "*"
 
     # Trading Defaults
     default_initial_capital: float = 100_000.0

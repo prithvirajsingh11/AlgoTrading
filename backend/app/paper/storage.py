@@ -226,3 +226,8 @@ class SQLitePaperStorage:
                 item["timestamp"] = r["timestamp"]
                 events.append(item)
             return events
+
+    def close(self) -> None:
+        """Closes any persistent connections (no-op as connections are context-managed per operation)."""
+        pass
+

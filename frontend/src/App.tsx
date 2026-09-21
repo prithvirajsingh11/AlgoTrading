@@ -1,16 +1,20 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense, lazy } from "react";
 import { Layout, NavRoute } from "./components/Layout";
-import { DashboardPage } from "./pages/DashboardPage";
-import { BacktestPage } from "./pages/BacktestPage";
-import { StrategyLabPage } from "./pages/StrategyLabPage";
-import { ExperimentsPage } from "./pages/ExperimentsPage";
-import { DatasetPage } from "./pages/DatasetPage";
-import { MLLabPage } from "./pages/MLLabPage";
-import { JevLabPage } from "./pages/JevLabPage";
-import { ComparisonPage } from "./pages/ComparisonPage";
-import { PortfolioPage } from "./pages/PortfolioPage";
-import { PaperTradingPage } from "./pages/PaperTradingPage";
-import { SettingsPage } from "./pages/SettingsPage";
+import { ErrorBoundary } from "./components/ErrorBoundary";
+import { LoadingSpinner } from "./components/Common";
+
+// Code splitting via React.lazy with dynamic imports
+const DashboardPage = lazy(() => import("./pages/DashboardPage").then((m) => ({ default: m.DashboardPage })));
+const BacktestPage = lazy(() => import("./pages/BacktestPage").then((m) => ({ default: m.BacktestPage })));
+const StrategyLabPage = lazy(() => import("./pages/StrategyLabPage").then((m) => ({ default: m.StrategyLabPage })));
+const ExperimentsPage = lazy(() => import("./pages/ExperimentsPage").then((m) => ({ default: m.ExperimentsPage })));
+const DatasetPage = lazy(() => import("./pages/DatasetPage").then((m) => ({ default: m.DatasetPage })));
+const MLLabPage = lazy(() => import("./pages/MLLabPage").then((m) => ({ default: m.MLLabPage })));
+const JevLabPage = lazy(() => import("./pages/JevLabPage").then((m) => ({ default: m.JevLabPage })));
+const ComparisonPage = lazy(() => import("./pages/ComparisonPage").then((m) => ({ default: m.ComparisonPage })));
+const PortfolioPage = lazy(() => import("./pages/PortfolioPage").then((m) => ({ default: m.PortfolioPage })));
+const PaperTradingPage = lazy(() => import("./pages/PaperTradingPage").then((m) => ({ default: m.PaperTradingPage })));
+const SettingsPage = lazy(() => import("./pages/SettingsPage").then((m) => ({ default: m.SettingsPage })));
 
 export const App: React.FC = () => {
   // Sync state with URL hash
@@ -81,7 +85,17 @@ export const App: React.FC = () => {
 
   return (
     <Layout currentRoute={currentRoute} onRouteChange={handleRouteChange}>
-      {renderCurrentPage()}
+      <ErrorBoundary>
+        <Suspense
+          fallback={
+            <div className="flex justify-center items-center min-h-[400px]">
+              <LoadingSpinner message="Loading institutional module..." />
+            </div>
+          }
+        >
+          {renderCurrentPage()}
+        </Suspense>
+      </ErrorBoundary>
     </Layout>
   );
 };

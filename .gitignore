@@ -9,6 +9,7 @@ venv/
 .pytest_cache/
 .coverage
 htmlcov/
+*.log
 
 # Node / Frontend
 node_modules/
@@ -28,10 +29,13 @@ Thumbs.db
 # Environment & Secrets
 .env
 .env.local
+.env.*.local
 
-# Data artifacts
+# Data artifacts & local databases
 data/models/*.pkl
 data/models/*.joblib
+data/paper/*.db
+data/experiments/*.db
 *.db
 *.sqlite
 *.sqlite3

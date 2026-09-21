@@ -22,6 +22,7 @@ from backend.app.paper.market_data import HistoricalReplayProvider
 from backend.app.paper.account import PaperAccount
 from backend.app.paper.orders import PaperOrderRecord, PaperOrderManager
 from backend.app.paper.storage import SQLitePaperStorage
+from backend.app.core.config import settings
 
 from backend.app.research.runner import STRATEGY_REGISTRY
 from backend.app.strategies.base import BaseStrategy
@@ -69,6 +70,12 @@ class PaperTradingService:
                 sid = row["session_id"]
                 sess = self.storage.load_session(sid)
                 if sess:
+                    if sess.status == SessionStatus.RUNNING:
+                        sess.status = SessionStatus.PAUSED
+                        sess.error_message = "Session interrupted by server restart. Requires explicit resume."
+                        sess.updated_at = datetime.now(timezone.utc).isoformat()
+                        self.storage.save_session(sess)
+                        logger.warning(f"Recovered RUNNING session {sid} as PAUSED after server restart.")
                     self.sessions[sid] = sess
                     self.recent_events[sid] = self.storage.load_events(sid, limit=50)
         except Exception as e:
@@ -79,6 +86,11 @@ class PaperTradingService:
         config: Dict[str, Any],
         dataset_manager: Optional[Any] = None,
     ) -> PaperTradingSession:
+        if len(self.sessions) >= settings.max_paper_sessions:
+            raise ValueError(
+                f"Maximum active paper sessions limit reached ({settings.max_paper_sessions}). "
+                "Complete or remove existing sessions."
+            )
         dataset_id = config.get("dataset_id", "AAPL")
         symbols = config.get("symbols") or [dataset_id]
         strategy_name = config.get("strategy", "TimeSeriesMomentum")

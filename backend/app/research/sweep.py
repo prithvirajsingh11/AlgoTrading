@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import Dict, Any, List, Optional
 import copy
 
+from backend.app.core.config import settings
 from backend.app.research.config import ExperimentConfig
 from backend.app.research.runner import ExperimentRunner
 from backend.app.research.splits import chronological_split
@@ -103,6 +104,11 @@ class ParameterSweepRunner:
             )
 
         combinations = self.expand_grid(parameter_grid)
+        if len(combinations) > settings.max_sweep_combinations:
+            raise ValueError(
+                f"Parameter sweep combinations ({len(combinations)}) exceed maximum allowed limit "
+                f"({settings.max_sweep_combinations}). Narrow parameter grid to prevent resource exhaustion."
+            )
         dataset_id = base_config.dataset.dataset_id or base_config.dataset.symbols[0]
 
         # 1. Apply chronological partition if eval_split is train or val

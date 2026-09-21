@@ -187,9 +187,135 @@ def jev_evaluate_command(context_arg: str) -> int:
     return 0
 
 
+def demo_command() -> int:
+    import tempfile
+    from backend.app.paper.service import PaperTradingService
+    from backend.app.paper.storage import SQLitePaperStorage
+    from backend.app.research.config import (
+        ExperimentConfig,
+        DatasetConfig,
+        StrategyConfig,
+        PortfolioConfig,
+        ExecutionConfig,
+        RiskConfig,
+        BacktestingConfig,
+    )
+
+    print("=" * 72)
+    print("    AlgoTrade -- Institutional Quant Research & Paper Engine (Demo)")
+    print("=" * 72)
+
+    # 1. Dataset validation
+    print("\n[1/4] Discovering & Validating Datasets...")
+    manager = DatasetManager()
+    datasets = manager.discover_datasets()
+    if not datasets:
+        print("  Error: No datasets discovered.")
+        return 1
+    target_id = "AAPL_sample" if any(d.dataset_id == "AAPL_sample" for d in datasets) else datasets[0].dataset_id
+    df = manager.load_dataset(target_id)
+    report = DatasetValidator.validate(df)
+    status_str = "PASS" if report.valid else "FAIL"
+    print(f"  * Dataset       : {target_id}")
+    print(f"  * Total Bars    : {len(df)}")
+    print(f"  * Quality Check : {status_str} ({len(report.errors)} errors, {len(report.warnings)} warnings)")
+
+    # 2. Benchmark Strategy Execution
+    print("\n[2/4] Executing TimeSeriesMomentum Strategy Backtest...")
+    runner = ExperimentRunner()
+    cfg_mom = ExperimentConfig(
+        dataset=DatasetConfig(dataset_id=target_id, symbols=["AAPL"]),
+        strategy=StrategyConfig(name="TimeSeriesMomentum", parameters={"lookback_period": 20, "holding_period": 5}),
+        portfolio=PortfolioConfig(initial_capital=100_000.0),
+        execution=ExecutionConfig(commission_fixed=1.0, commission_percent=0.0005, slippage_bps=5.0),
+        risk=RiskConfig(position_size_pct=0.25, max_position_pct=0.50, max_drawdown_limit=0.25),
+        backtesting=BacktestingConfig(mode="standard"),
+    )
+    res_mom = runner.run_experiment(cfg_mom)
+    m = res_mom.metrics or {}
+    print(f"  * Runtime       : {res_mom.execution_statistics.get('runtime_ms', 0):.1f} ms")
+    print(f"  * Total Return  : {m.get('total_return', 0.0):.2%}")
+    print(f"  * Sharpe Ratio  : {m.get('sharpe_ratio', 0.0):.4f}")
+    print(f"  * Sortino Ratio : {m.get('sortino_ratio', 0.0):.4f}")
+    print(f"  * Max Drawdown  : {m.get('maximum_drawdown', 0.0):.2%}")
+    print(f"  * Trades Exec   : {res_mom.execution_statistics.get('trade_count', 0)}")
+
+    # 3. Multi-Strategy Comparative Matrix
+    print("\n[3/4] Comparative Strategy Benchmark Matrix...")
+    cfg_mr = ExperimentConfig(
+        dataset=DatasetConfig(dataset_id=target_id, symbols=["AAPL"]),
+        strategy=StrategyConfig(name="MeanReversion", parameters={"lookback_period": 20, "entry_z_score": -1.5, "exit_z_score": 0.0}),
+        portfolio=PortfolioConfig(initial_capital=100_000.0),
+        execution=ExecutionConfig(commission_fixed=1.0, commission_percent=0.0005, slippage_bps=5.0),
+        risk=RiskConfig(position_size_pct=0.25, max_position_pct=0.50, max_drawdown_limit=0.25),
+        backtesting=BacktestingConfig(mode="standard"),
+    )
+    res_mr = runner.run_experiment(cfg_mr)
+
+    cfg_ma = ExperimentConfig(
+        dataset=DatasetConfig(dataset_id=target_id, symbols=["AAPL"]),
+        strategy=StrategyConfig(name="MovingAverageCross", parameters={"fast_period": 10, "slow_period": 30}),
+        portfolio=PortfolioConfig(initial_capital=100_000.0),
+        execution=ExecutionConfig(commission_fixed=1.0, commission_percent=0.0005, slippage_bps=5.0),
+        risk=RiskConfig(position_size_pct=0.25, max_position_pct=0.50, max_drawdown_limit=0.25),
+        backtesting=BacktestingConfig(mode="standard"),
+    )
+    res_ma = runner.run_experiment(cfg_ma)
+
+    header = f"  {'Strategy':<22} | {'Return':<9} | {'Sharpe':<8} | {'MaxDD':<8} | {'Trades':<6}"
+    divider = "  " + "-" * 62
+    print(divider)
+    print(header)
+    print(divider)
+    for name, r in [("TimeSeriesMomentum", res_mom), ("MeanReversion", res_mr), ("MovingAverageCross", res_ma)]:
+        rm = r.metrics or {}
+        ret_s = f"{rm.get('total_return', 0.0):.2%}"
+        sh_s = f"{rm.get('sharpe_ratio', 0.0):.2f}"
+        dd_s = f"{rm.get('maximum_drawdown', 0.0):.2%}"
+        tc = r.execution_statistics.get('trade_count', 0)
+        print(f"  {name:<22} | {ret_s:<9} | {sh_s:<8} | {dd_s:<8} | {tc:<6}")
+    print(divider)
+
+    # 4. In-Memory Real-Time Paper Trading Replay
+    print("\n[4/4] Executing 15-Bar Paper Trading Replay Simulation...")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmp_db = Path(tmpdir) / "demo_paper.db"
+        storage = SQLitePaperStorage(str(tmp_db))
+        paper_svc = PaperTradingService(storage=storage)
+        session = paper_svc.create_session({
+            "dataset_id": target_id,
+            "symbols": ["AAPL"],
+            "strategy": "TimeSeriesMomentum",
+            "initial_capital": 100_000.0,
+            "speed": "10x",
+        })
+        steps = 15
+        total_events = 0
+        for _ in range(steps):
+            _, evts = paper_svc.step_session(session.session_id)
+            total_events += len(evts)
+
+        export_data = paper_svc.export_results(session.session_id)
+        summ = export_data["summary"]
+        print(f"  * Session ID    : {session.session_id}")
+        print(f"  * Replayed Bars : {summ['total_bars_replayed']} bars")
+        print(f"  * Final Equity  : ${summ['current_equity']:,.2f} (Net: ${summ['net_profit']:+,.2f})")
+        print(f"  * Orders Placed : {summ['total_orders']}")
+        print(f"  * Trades Closed : {summ['total_trades']}")
+        print(f"  * Logged Events : {total_events} events")
+
+    print("\n" + "=" * 72)
+    print("  AlgoTrade Demo Completed Successfully! (Exit: 0)")
+    print("=" * 72)
+    return 0
+
+
 def main(args: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="AlgoTrade Research Platform CLI")
     subparsers = parser.add_subparsers(dest="command", help="Available subcommands")
+
+    # demo
+    subparsers.add_parser("demo", help="Run comprehensive offline research & paper-trading demonstration")
 
     # run-experiment
     run_parser = subparsers.add_parser("run-experiment", help="Execute an experiment from config file")
@@ -216,7 +342,9 @@ def main(args: Optional[list[str]] = None) -> int:
 
     parsed = parser.parse_args(args)
 
-    if parsed.command == "run-experiment":
+    if parsed.command == "demo":
+        return demo_command()
+    elif parsed.command == "run-experiment":
         return run_experiment_command(parsed.config)
     elif parsed.command == "list-datasets":
         return list_datasets_command()

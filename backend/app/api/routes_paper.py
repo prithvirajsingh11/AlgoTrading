@@ -1,8 +1,10 @@
 """FastAPI endpoints and WebSocket stream for AlgoTrade Paper Trading System."""
 
 from __future__ import annotations
+import csv
+import io
 from typing import Dict, Any, List, Optional
-from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, Response
 from pydantic import BaseModel, Field
 
 from backend.app.paper.service import paper_service
@@ -167,6 +169,69 @@ def export_session_results(session_id: str) -> Dict[str, Any]:
         return paper_service.export_results(session_id)
     except KeyError:
         raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found.")
+
+
+@router.get("/sessions/{session_id}/export/trades.csv")
+def export_trades_csv(session_id: str) -> Response:
+    """Exports trades log as CSV format."""
+    try:
+        data = paper_service.export_results(session_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found.")
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "trade_id", "symbol", "entry_time", "exit_time", "direction",
+        "quantity", "entry_price", "exit_price", "realized_pnl", "return_pct", "exit_reason"
+    ])
+    for t in data.get("trades", []):
+        writer.writerow([
+            t.get("trade_id", ""),
+            t.get("symbol", ""),
+            t.get("entry_time", ""),
+            t.get("exit_time", ""),
+            t.get("direction", ""),
+            t.get("quantity", 0),
+            t.get("entry_price", 0.0),
+            t.get("exit_price", 0.0),
+            t.get("realized_pnl", 0.0),
+            t.get("return_pct", 0.0),
+            t.get("exit_reason", ""),
+        ])
+
+    return Response(
+        content=output.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="paper_trades_{session_id}.csv"'}
+    )
+
+
+@router.get("/sessions/{session_id}/export/equity.csv")
+def export_equity_csv(session_id: str) -> Response:
+    """Exports session equity curve as CSV format."""
+    try:
+        data = paper_service.export_results(session_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found.")
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["timestamp", "equity", "cash", "realized_pnl", "unrealized_pnl"])
+    for eq in data.get("equity_curve", []):
+        writer.writerow([
+            eq.get("timestamp", ""),
+            eq.get("equity", 0.0),
+            eq.get("cash", 0.0),
+            eq.get("realized_pnl", 0.0),
+            eq.get("unrealized_pnl", 0.0),
+        ])
+
+    return Response(
+        content=output.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="paper_equity_{session_id}.csv"'}
+    )
 
 
 # Legacy compatibility endpoints

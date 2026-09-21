@@ -43,6 +43,7 @@ import {
   exportPaperResults,
   getPaperWebSocketUrl,
 } from "../services/paper";
+import { getApiBaseUrl } from "../services/api";
 import { listDatasets } from "../services/datasets";
 import { listStrategies } from "../services/strategies";
 import {
@@ -330,6 +331,16 @@ export const PaperTradingPage: React.FC = () => {
     }
   };
 
+  const handleExportTradesCsv = () => {
+    if (!activeSessionId) return;
+    window.open(`${getApiBaseUrl()}/paper/sessions/${activeSessionId}/export/trades.csv`, "_blank");
+  };
+
+  const handleExportEquityCsv = () => {
+    if (!activeSessionId) return;
+    window.open(`${getApiBaseUrl()}/paper/sessions/${activeSessionId}/export/equity.csv`, "_blank");
+  };
+
   // Create New Session
   const handleCreateSession = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -541,6 +552,26 @@ export const PaperTradingPage: React.FC = () => {
                   <option value="10x">10x</option>
                   <option value="MAX">MAX</option>
                 </select>
+              </div>
+
+              {/* CSV Exports */}
+              <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", marginLeft: "0.5rem" }}>
+                <button
+                  onClick={handleExportTradesCsv}
+                  className="btn btn-secondary btn-sm"
+                  title="Download closed trades as CSV"
+                  style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.75rem", padding: "0.25rem 0.5rem" }}
+                >
+                  <Download size={13} /> Trades CSV
+                </button>
+                <button
+                  onClick={handleExportEquityCsv}
+                  className="btn btn-secondary btn-sm"
+                  title="Download equity curve as CSV"
+                  style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.75rem", padding: "0.25rem 0.5rem" }}
+                >
+                  <Download size={13} /> Equity CSV
+                </button>
               </div>
             </div>
 

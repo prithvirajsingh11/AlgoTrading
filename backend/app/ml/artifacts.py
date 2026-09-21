@@ -5,6 +5,7 @@ column orderings.
 """
 
 from __future__ import annotations
+import os
 import json
 import hashlib
 from dataclasses import dataclass, field, asdict
@@ -101,6 +102,42 @@ class MLModelArtifact:
             created_at=str(data.get("created_at", "")),
         )
 
+    @classmethod
+    def validate_artifact_integrity(cls, data: Dict[str, Any]) -> None:
+        """Validates artifact structural completeness and cryptographic schema consistency."""
+        required = [
+            "model_json",
+            "feature_names",
+            "feature_order",
+            "feature_schema_hash",
+            "training_config",
+            "label_config",
+        ]
+        missing = [f for f in required if f not in data]
+        if missing:
+            raise ValueError(f"Malformed artifact: missing required fields: {missing}")
+
+        m_json = data.get("model_json")
+        if not isinstance(m_json, str) or not m_json.strip():
+            raise ValueError("Malformed artifact: 'model_json' must be a non-empty string.")
+        try:
+            json.loads(m_json)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Malformed artifact: 'model_json' is not valid JSON: {e}")
+
+        feature_order = data.get("feature_order")
+        if not isinstance(feature_order, list) or not feature_order:
+            raise ValueError("Malformed artifact: 'feature_order' must be a non-empty list of feature names.")
+
+        canonical = json.dumps(list(feature_order), separators=(",", ":"))
+        expected_hash = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+        actual_hash = data.get("feature_schema_hash")
+        if actual_hash != expected_hash:
+            raise ValueError(
+                f"Artifact integrity violation: feature_schema_hash mismatch. "
+                f"Expected {expected_hash[:16]}..., got {str(actual_hash)[:16]}..."
+            )
+
     def save(self, filepath: str) -> None:
         """Saves artifact to a JSON file."""
         with open(filepath, "w", encoding="utf-8") as f:
@@ -108,7 +145,17 @@ class MLModelArtifact:
 
     @classmethod
     def load(cls, filepath: str) -> MLModelArtifact:
-        """Loads artifact from a JSON file."""
-        with open(filepath, "r", encoding="utf-8") as f:
-            data = json.load(f)
+        """Loads and validates artifact from a JSON file."""
+        if not os.path.exists(filepath):
+            raise FileNotFoundError(f"Model artifact not found at '{filepath}'")
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Corrupted model artifact at '{filepath}': invalid JSON ({e})") from e
+
+        if not isinstance(data, dict):
+            raise ValueError(f"Corrupted model artifact at '{filepath}': root must be a JSON object.")
+
+        cls.validate_artifact_integrity(data)
         return cls.from_dict(data)
