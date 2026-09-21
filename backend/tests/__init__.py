@@ -1,0 +1,1 @@
+"""AlgoTrade automated test suite."""

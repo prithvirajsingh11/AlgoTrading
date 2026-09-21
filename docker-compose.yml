@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: algotrade-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: algotrade
+      POSTGRES_PASSWORD: algotrade_password
+      POSTGRES_DB: algotrade_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U algotrade -d algotrade_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: algotrade-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://algotrade:algotrade_password@db:5432/algotrade_db
+      - ENVIRONMENT=production
+      - DEBUG=False
+    volumes:
+      - ./data:/app/data
+
+volumes:
+  postgres_data:
