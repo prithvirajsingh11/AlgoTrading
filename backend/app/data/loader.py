@@ -14,15 +14,41 @@ class OHLCVBar:
     low: float
     close: float
     volume: float
+    symbol: Optional[str] = None
 
     def to_dict(self) -> dict:
-        return {
+        res = {
             "timestamp": self.timestamp.isoformat(),
             "open": self.open,
             "high": self.high,
             "low": self.low,
             "close": self.close,
             "volume": self.volume,
+        }
+        if self.symbol:
+            res["symbol"] = self.symbol
+        return res
+
+
+@dataclass(frozen=True)
+class MarketSnapshot:
+    """Represents a synchronized multi-asset market observation at timestamp t."""
+    timestamp: datetime
+    bars: dict[str, OHLCVBar]
+
+    def get_bar(self, symbol: str) -> Optional[OHLCVBar]:
+        return self.bars.get(symbol)
+
+    def __getitem__(self, symbol: str) -> OHLCVBar:
+        return self.bars[symbol]
+
+    def __contains__(self, symbol: str) -> bool:
+        return symbol in self.bars
+
+    def to_dict(self) -> dict:
+        return {
+            "timestamp": self.timestamp.isoformat(),
+            "bars": {sym: bar.to_dict() for sym, bar in self.bars.items()},
         }
 
 
@@ -63,20 +89,23 @@ class CSVDataLoader:
         return df[self.STANDARD_COLUMNS]
 
     @staticmethod
-    def to_bars(df: pd.DataFrame) -> List[OHLCVBar]:
+    def to_bars(df: pd.DataFrame, symbol: Optional[str] = None) -> List[OHLCVBar]:
         bars: List[OHLCVBar] = []
+        sym_col = "symbol" if "symbol" in df.columns else None
         for row in df.itertuples(index=False):
-            ts = row.timestamp
+            ts = getattr(row, "timestamp")
             if isinstance(ts, pd.Timestamp):
                 ts = ts.to_pydatetime()
+            row_sym = getattr(row, sym_col) if sym_col else symbol
             bars.append(
                 OHLCVBar(
                     timestamp=ts,
-                    open=float(row.open),
-                    high=float(row.high),
-                    low=float(row.low),
-                    close=float(row.close),
-                    volume=float(row.volume),
+                    open=float(getattr(row, "open")),
+                    high=float(getattr(row, "high")),
+                    low=float(getattr(row, "low")),
+                    close=float(getattr(row, "close")),
+                    volume=float(getattr(row, "volume")),
+                    symbol=str(row_sym) if row_sym is not None else None,
                 )
             )
         return bars

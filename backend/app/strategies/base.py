@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Union, List
 import pandas as pd
-from backend.app.data.loader import OHLCVBar
+from backend.app.data.loader import OHLCVBar, MarketSnapshot
 from backend.app.backtesting.orders import SignalEvent
 
 
@@ -15,11 +15,15 @@ class BaseStrategy(ABC):
         self.warmup_period: int = 1
 
     @abstractmethod
-    def generate_signal(self, bar: OHLCVBar, history_df: pd.DataFrame) -> Optional[SignalEvent]:
+    def generate_signal(
+        self,
+        bar: Union[OHLCVBar, MarketSnapshot],
+        history_df: Union[pd.DataFrame, Dict[str, pd.DataFrame]],
+    ) -> Optional[Union[SignalEvent, List[SignalEvent]]]:
         """Evaluates incoming market bar and historical slice to emit trading signals.
 
         history_df contains historical bars strictly UP TO AND INCLUDING the current bar.
-        Must return None or SignalEvent (BUY, SELL, HOLD).
+        Must return None, SignalEvent, or List[SignalEvent].
         """
         pass
 

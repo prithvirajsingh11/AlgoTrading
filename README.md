@@ -237,6 +237,35 @@ curl -X POST "http://127.0.0.1:8000/api/v1/backtest/run" \
 
 ---
 
+## Execution Model & Limitations
+
+### 1. Discrete OHLCV Simulation & Gap Policy
+Backtesting executes over discrete chronological bars ($\text{Open}, \text{High}, \text{Low}, \text{Close}$). Because sub-bar price trajectories are unobservable without tick data, simulated order execution adheres to a deterministic, conservative policy:
+- **Long Stop-Loss (`SELL`):**
+  - **Gap-Down:** If $\text{Open} \le \text{Stop Price}$, the market opened below the protective threshold. The order fills at $\text{Open} - \text{Slippage}$ (penalizing the trade for the gap).
+  - **Intrabar Breach:** If $\text{Open} > \text{Stop Price}$ and $\text{Low} \le \text{Stop Price}$, price traded through the stop during the bar. The order fills at $\text{Stop Price} - \text{Slippage}$.
+- **Short Stop-Loss (`BUY` to Cover):**
+  - **Gap-Up:** If $\text{Open} \ge \text{Stop Price}$, the market opened above the stop threshold. The order fills at $\text{Open} + \text{Slippage}$.
+  - **Intrabar Breach:** If $\text{Open} < \text{Stop Price}$ and $\text{High} \ge \text{Stop Price}$, price traded through the stop during the bar. The order fills at $\text{Stop Price} + \text{Slippage}$.
+
+### 2. Intrabar Ambiguity Resolution
+When both a stop-loss and a limit order (e.g. take-profit target) are active within the same bar and both extreme price levels are breached ($\text{High} \ge \text{Limit}$ and $\text{Low} \le \text{Stop}$):
+- The platform enforces a **pessimistic risk-first execution policy**: the stop-loss order is evaluated and filled first.
+- Conflicting limit orders for that position are automatically cancelled to avoid double execution or unintended short exposure.
+
+### 3. Order Lifecycle & Active Stop Tracking
+- Orders transition through explicit states: $\text{PENDING} \to \text{TRIGGERED} \to \text{FILLED}$ (or $\text{CANCELLED}$).
+- When a position is closed (either by normal strategy exit or protective stop-loss), all active stop-loss and protective orders for that symbol are cleaned up immediately to prevent orphaned fills.
+
+### 4. True Multi-Asset Pairs Trading & Lookahead Prevention
+- **`MarketSnapshot` Feed:** Encapsulates synchronized multi-asset observations at timestamp $t$.
+- **Timestamp Intersection:** Multi-asset datasets are strictly synchronized by their common trading timestamps. Any dataset containing duplicate timestamps, missing values, unsorted order, or disjoint ranges is rejected.
+- **Dynamic Hedge Ratio:** $\beta_t = \frac{\text{Cov}(P_A, P_B)}{\text{Var}(P_B)}$ is estimated strictly using observations up to $t$.
+- **Two-Leg Execution:** Long spread buys Asset A and sells Asset B ($Q_B = Q_A \cdot \beta_t$); short spread sells Asset A and buys Asset B; exit signals close both legs simultaneously.
+- **Short Accounting:** Full liability tracking where short market value is negative, cash is credited upon short sale, and buy-to-cover realizes $(\text{Entry} - \text{Fill}) \times Q - \text{Fees}$.
+
+---
+
 ## Roadmap
 
  - [x] **Phase 1:** Project foundation and modular architecture.
@@ -246,6 +275,7 @@ curl -X POST "http://127.0.0.1:8000/api/v1/backtest/run" \
  - [x] **Phase 5:** Quantitative performance metrics (Sharpe, Sortino, Max Drawdown).
  - [x] **Phase 6:** Automated test suite (35 passing tests).
  - [x] **Phase 7:** Strategy expansion (Momentum, Mean Reversion, Pairs Trading), Risk Sizing, Stop-Loss, Walk-Forward backtester, and Strategy Comparator (51 passing tests).
+ - [x] **Phase 7.1:** True Multi-Asset Pairs Trading & Realistic Stop-Loss Execution (70 passing tests).
  - [ ] **Phase 8:** Machine Learning feature pipeline & XGBoost predictive model.
  - [ ] **Phase 9:** Real-time paper-trading session daemon.
  - [ ] **Phase 10:** React + TypeScript interactive analytics dashboard.

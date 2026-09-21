@@ -20,7 +20,10 @@ class Position:
     def unrealized_pnl(self, current_price: float) -> float:
         if self.quantity == 0:
             return 0.0
-        return (current_price - self.avg_entry_price) * self.quantity
+        if self.quantity > 0:
+            return (current_price - self.avg_entry_price) * self.quantity
+        else:
+            return (self.avg_entry_price - current_price) * abs(self.quantity)
 
 
 @dataclass(frozen=True)
@@ -46,11 +49,12 @@ class EquityPoint:
 class Portfolio:
     """Manages cash balances, open positions, trade histories, and equity valuation."""
 
-    def __init__(self, initial_cash: float = 100_000.0):
+    def __init__(self, initial_cash: float = 100_000.0, allow_shorting: bool = False):
         if initial_cash <= 0:
             raise ValueError(f"Initial cash must be positive, got {initial_cash}")
         self.initial_cash = initial_cash
         self.cash = initial_cash
+        self.allow_shorting = allow_shorting
         self.positions: Dict[str, Position] = {}
         self.trades: List[TradeRecord] = []
         self.equity_history: List[EquityPoint] = []
@@ -77,31 +81,32 @@ class Portfolio:
             total_cost = (fill_price * qty) + commission
             self.cash -= total_cost
 
-            # Updating long position
-            new_qty = pos.quantity + qty
-            if pos.quantity > 0:
-                pos.avg_entry_price = ((pos.quantity * pos.avg_entry_price) + (qty * fill_price)) / new_qty
+            # If currently flat or long: add to long
+            if pos.quantity >= 0:
+                new_qty = pos.quantity + qty
+                if pos.quantity > 0:
+                    pos.avg_entry_price = ((pos.quantity * pos.avg_entry_price) + (qty * fill_price)) / new_qty
+                else:
+                    pos.avg_entry_price = fill_price
+                    self._entry_times[symbol] = execution.timestamp
+                pos.quantity = new_qty
+
+            # If currently short: BUY covers the short position
             else:
-                pos.avg_entry_price = fill_price
-                self._entry_times[symbol] = execution.timestamp
-            pos.quantity = new_qty
+                current_short_qty = abs(pos.quantity)
+                cover_qty = min(current_short_qty, qty)
+                excess_long_qty = qty - cover_qty
 
-        elif order.side == OrderSide.SELL:
-            gross_revenue = fill_price * qty
-            net_revenue = gross_revenue - commission
-            self.cash += net_revenue
-
-            # Reducing/closing long position
-            if pos.quantity >= qty:
-                pnl = (fill_price - pos.avg_entry_price) * qty - commission - slippage
-                pnl_pct = (fill_price - pos.avg_entry_price) / pos.avg_entry_price if pos.avg_entry_price > 0 else 0.0
+                # Realized P&L on covering short: (entry - fill) * cover_qty - fees
+                pnl = (pos.avg_entry_price - fill_price) * cover_qty - commission - slippage
+                pnl_pct = (pos.avg_entry_price - fill_price) / pos.avg_entry_price if pos.avg_entry_price > 0 else 0.0
                 self.cumulative_realized_pnl += pnl
 
                 entry_dt = self._entry_times.get(symbol, execution.timestamp)
                 trade_record = TradeRecord(
                     symbol=symbol,
-                    side=OrderSide.BUY,  # Underlying trade direction was long
-                    quantity=qty,
+                    side=OrderSide.SELL,  # Original trade direction was short
+                    quantity=cover_qty,
                     entry_price=pos.avg_entry_price,
                     exit_price=fill_price,
                     entry_time=entry_dt,
@@ -113,14 +118,96 @@ class Portfolio:
                 )
                 self.trades.append(trade_record)
 
-                pos.quantity -= qty
+                pos.quantity += cover_qty
                 if pos.quantity == 0:
                     pos.avg_entry_price = 0.0
                     self._entry_times.pop(symbol, None)
+
+                # If order flipped short into long
+                if excess_long_qty > 0:
+                    pos.quantity = excess_long_qty
+                    pos.avg_entry_price = fill_price
+                    self._entry_times[symbol] = execution.timestamp
+
+        elif order.side == OrderSide.SELL:
+            gross_revenue = fill_price * qty
+            net_revenue = gross_revenue - commission
+            self.cash += net_revenue
+
+            # If currently flat or short: open/add to short
+            if pos.quantity <= 0:
+                if not self.allow_shorting and pos.quantity == 0:
+                    raise ValueError(
+                        f"Attempted to sell {qty} shares of {symbol}, but only {pos.quantity} held."
+                    )
+                current_short = abs(pos.quantity)
+                new_short = current_short + qty
+                if current_short > 0:
+                    pos.avg_entry_price = ((current_short * pos.avg_entry_price) + (qty * fill_price)) / new_short
+                else:
+                    pos.avg_entry_price = fill_price
+                    self._entry_times[symbol] = execution.timestamp
+                pos.quantity = -new_short
+
+            # If currently long: SELL closes/reduces long
             else:
-                raise ValueError(
-                    f"Attempted to sell {qty} shares of {symbol}, but only {pos.quantity} held."
-                )
+                if pos.quantity >= qty:
+                    pnl = (fill_price - pos.avg_entry_price) * qty - commission - slippage
+                    pnl_pct = (fill_price - pos.avg_entry_price) / pos.avg_entry_price if pos.avg_entry_price > 0 else 0.0
+                    self.cumulative_realized_pnl += pnl
+
+                    entry_dt = self._entry_times.get(symbol, execution.timestamp)
+                    trade_record = TradeRecord(
+                        symbol=symbol,
+                        side=OrderSide.BUY,  # Original trade direction was long
+                        quantity=qty,
+                        entry_price=pos.avg_entry_price,
+                        exit_price=fill_price,
+                        entry_time=entry_dt,
+                        exit_time=execution.timestamp,
+                        commission=commission,
+                        slippage=slippage,
+                        pnl=pnl,
+                        pnl_percent=pnl_pct,
+                    )
+                    self.trades.append(trade_record)
+
+                    pos.quantity -= qty
+                    if pos.quantity == 0:
+                        pos.avg_entry_price = 0.0
+                        self._entry_times.pop(symbol, None)
+                else:
+                    if not self.allow_shorting:
+                        raise ValueError(
+                            f"Attempted to sell {qty} shares of {symbol}, but only {pos.quantity} held."
+                        )
+                    # Flips from long to short
+                    held_long = pos.quantity
+                    excess_short = qty - held_long
+
+                    pnl = (fill_price - pos.avg_entry_price) * held_long - commission - slippage
+                    pnl_pct = (fill_price - pos.avg_entry_price) / pos.avg_entry_price if pos.avg_entry_price > 0 else 0.0
+                    self.cumulative_realized_pnl += pnl
+
+                    entry_dt = self._entry_times.get(symbol, execution.timestamp)
+                    trade_record = TradeRecord(
+                        symbol=symbol,
+                        side=OrderSide.BUY,
+                        quantity=held_long,
+                        entry_price=pos.avg_entry_price,
+                        exit_price=fill_price,
+                        entry_time=entry_dt,
+                        exit_time=execution.timestamp,
+                        commission=commission,
+                        slippage=slippage,
+                        pnl=pnl,
+                        pnl_percent=pnl_pct,
+                    )
+                    self.trades.append(trade_record)
+
+                    pos.quantity = -excess_short
+                    pos.avg_entry_price = fill_price
+                    self._entry_times[symbol] = execution.timestamp
 
         return trade_record
 

@@ -17,11 +17,11 @@ Statistical Assumptions & Methodology:
    observations up to and including the current bar timestamp.
 """
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Union, List, Tuple
 import numpy as np
 import pandas as pd
 from backend.app.strategies.base import BaseStrategy
-from backend.app.data.loader import OHLCVBar
+from backend.app.data.loader import OHLCVBar, MarketSnapshot
 from backend.app.backtesting.orders import SignalEvent, SignalType
 
 
@@ -36,6 +36,8 @@ class PairsTradingStrategy(BaseStrategy):
         entry_threshold: float = 2.0,
         exit_threshold: float = 0.5,
         fixed_hedge_ratio: Optional[float] = None,
+        two_leg: bool = False,
+        use_log_prices: bool = False,
         hedge_data: Optional[pd.DataFrame] = None,
         parameters: Optional[Dict[str, Any]] = None,
     ):
@@ -47,6 +49,8 @@ class PairsTradingStrategy(BaseStrategy):
         fixed_beta = params.get("fixed_hedge_ratio", fixed_hedge_ratio)
         if fixed_beta is not None:
             fixed_beta = float(fixed_beta)
+        is_two_leg = bool(params.get("two_leg", two_leg))
+        use_log = bool(params.get("use_log_prices", use_log_prices))
 
         if lookback < 5:
             raise ValueError("lookback_period must be at least 5 bars for statistical validity.")
@@ -62,6 +66,8 @@ class PairsTradingStrategy(BaseStrategy):
                 "entry_threshold": entry_th,
                 "exit_threshold": exit_th,
                 "fixed_hedge_ratio": fixed_beta,
+                "two_leg": is_two_leg,
+                "use_log_prices": use_log,
             },
         )
         self.hedge_symbol = h_sym
@@ -69,6 +75,8 @@ class PairsTradingStrategy(BaseStrategy):
         self.entry_threshold = entry_th
         self.exit_threshold = exit_th
         self.fixed_hedge_ratio = fixed_beta
+        self.two_leg = is_two_leg
+        self.use_log_prices = use_log
         self.hedge_data = hedge_data.copy() if hedge_data is not None else None
         if self.hedge_data is not None:
             self.hedge_data["timestamp"] = pd.to_datetime(self.hedge_data["timestamp"])
@@ -76,24 +84,30 @@ class PairsTradingStrategy(BaseStrategy):
 
         self.warmup_period = lookback
         self._is_long: bool = False
+        self._position_state: Optional[str] = None  # None, "LONG_SPREAD", or "SHORT_SPREAD"
 
     def reset(self) -> None:
         self._is_long = False
+        self._position_state = None
 
     @staticmethod
-    def estimate_hedge_ratio(p1: pd.Series, p2: pd.Series) -> float:
+    def estimate_hedge_ratio(p1: pd.Series, p2: pd.Series, use_log: bool = False) -> float:
         """Estimates hedge ratio beta via sample covariance / variance."""
-        var_p2 = p2.var(ddof=1)
-        if var_p2 <= 1e-8 or pd.isna(var_p2):
+        s1 = np.log(p1) if use_log else p1
+        s2 = np.log(p2) if use_log else p2
+        var_s2 = s2.var(ddof=1)
+        if var_s2 <= 1e-8 or pd.isna(var_s2):
             return 1.0
-        cov_p1_p2 = p1.cov(p2)
-        if pd.isna(cov_p1_p2):
+        cov_s1_s2 = s1.cov(s2)
+        if pd.isna(cov_s1_s2):
             return 1.0
-        return float(cov_p1_p2 / var_p2)
+        return float(cov_s1_s2 / var_s2)
 
     @staticmethod
-    def calculate_spread(p1: pd.Series, p2: pd.Series, beta: float) -> pd.Series:
-        return p1 - (beta * p2)
+    def calculate_spread(p1: pd.Series, p2: pd.Series, beta: float, use_log: bool = False) -> pd.Series:
+        s1 = np.log(p1) if use_log else p1
+        s2 = np.log(p2) if use_log else p2
+        return s1 - (beta * s2)
 
     @staticmethod
     def calculate_z_score(spread_window: pd.Series) -> float:
@@ -103,78 +117,119 @@ class PairsTradingStrategy(BaseStrategy):
             return 0.0
         return float((spread_window.iloc[-1] - mean_s) / std_s)
 
-    def _get_hedge_series(self, bar: OHLCVBar, history_df: pd.DataFrame) -> Optional[pd.Series]:
-        """Extracts aligned hedge asset price series up to current bar."""
-        # 1. Check if history_df contains hedge close column
+    def _extract_series(
+        self,
+        bar: Union[OHLCVBar, MarketSnapshot],
+        history_df: Union[pd.DataFrame, Dict[str, pd.DataFrame]],
+    ) -> Tuple[Optional[pd.Series], Optional[pd.Series]]:
+        """Extracts aligned price series for symbol and hedge_symbol up to current bar."""
+        ts = bar.timestamp
+        if isinstance(history_df, dict):
+            df_a = history_df.get(self.symbol)
+            df_b = history_df.get(self.hedge_symbol)
+            if df_a is None or df_b is None:
+                return None, None
+            s_a = df_a[df_a["timestamp"] <= ts]["close"].reset_index(drop=True)
+            s_b = df_b[df_b["timestamp"] <= ts]["close"].reset_index(drop=True)
+            return s_a, s_b
+
+        sub_df = history_df[history_df["timestamp"] <= ts] if "timestamp" in history_df.columns else history_df
+        s_a = sub_df["close"].reset_index(drop=True) if "close" in sub_df.columns else None
+
+        s_b = None
         for candidate_col in ["hedge_close", f"{self.hedge_symbol.lower()}_close", self.hedge_symbol.lower()]:
-            if candidate_col in history_df.columns:
-                return history_df[candidate_col]
+            if candidate_col in sub_df.columns:
+                s_b = sub_df[candidate_col].reset_index(drop=True)
+                break
 
-        # 2. Check external hedge_data table aligned by timestamp
-        if self.hedge_data is not None:
-            sub = self.hedge_data[self.hedge_data["timestamp"] <= bar.timestamp]
-            if len(sub) >= len(history_df):
-                return sub["close"].iloc[-len(history_df):].reset_index(drop=True)
+        if s_b is None and self.hedge_data is not None:
+            sub = self.hedge_data[self.hedge_data["timestamp"] <= ts]
+            if len(sub) >= len(sub_df):
+                s_b = sub["close"].iloc[-len(sub_df):].reset_index(drop=True)
 
-        return None
+        return s_a, s_b
 
-    def generate_signal(self, bar: OHLCVBar, history_df: pd.DataFrame) -> Optional[SignalEvent]:
-        if len(history_df) < self.warmup_period:
+    def generate_signal(
+        self,
+        bar: Union[OHLCVBar, MarketSnapshot],
+        history_df: Union[pd.DataFrame, Dict[str, pd.DataFrame]],
+    ) -> Optional[Union[SignalEvent, List[SignalEvent]]]:
+        p1_series, p2_series = self._extract_series(bar, history_df)
+        if p1_series is None or p2_series is None:
+            return None
+        if len(p1_series) < self.warmup_period or len(p2_series) < self.warmup_period:
             return None
 
-        p2_series = self._get_hedge_series(bar, history_df)
-        if p2_series is None or len(p2_series) < self.warmup_period:
-            return None
-
-        # Take matching lookback window
-        p1_window = history_df["close"].iloc[-self.lookback_period:].reset_index(drop=True)
+        p1_window = p1_series.iloc[-self.lookback_period:].reset_index(drop=True)
         p2_window = p2_series.iloc[-self.lookback_period:].reset_index(drop=True)
 
         if len(p1_window) != len(p2_window) or p1_window.isna().any() or p2_window.isna().any():
             return None
 
-        # Compute or use fixed hedge ratio
         if self.fixed_hedge_ratio is not None:
             beta = self.fixed_hedge_ratio
         else:
-            beta = self.estimate_hedge_ratio(p1_window, p2_window)
+            beta = self.estimate_hedge_ratio(p1_window, p2_window, use_log=self.use_log_prices)
 
-        # Spread & z-score
-        spread_series = self.calculate_spread(p1_window, p2_window, beta)
+        spread_series = self.calculate_spread(p1_window, p2_window, beta, use_log=self.use_log_prices)
         z_score = self.calculate_z_score(spread_series)
 
-        # Entry signal: Spread is undervalued (Asset 1 cheap relative to Asset 2)
+        is_two_leg = self.two_leg or isinstance(bar, MarketSnapshot)
+
+        meta = {
+            "z_score": round(z_score, 4),
+            "hedge_ratio": round(beta, 4),
+            "spread": round(float(spread_series.iloc[-1]), 4),
+            "entry_threshold": self.entry_threshold,
+            "exit_threshold": self.exit_threshold,
+            "hedge_symbol": self.hedge_symbol,
+            "hedge_qty_ratio": round(beta, 4),
+        }
+
+        if is_two_leg:
+            # 1. Long Spread (z <= -entry_threshold): BUY Asset A, SELL Asset B
+            if z_score <= -self.entry_threshold:
+                if self._position_state != "LONG_SPREAD":
+                    self._position_state = "LONG_SPREAD"
+                    return [
+                        SignalEvent(timestamp=bar.timestamp, symbol=self.symbol, signal_type=SignalType.BUY, metadata=meta),
+                        SignalEvent(timestamp=bar.timestamp, symbol=self.hedge_symbol, signal_type=SignalType.SELL, metadata=meta),
+                    ]
+            # 2. Short Spread (z >= entry_threshold): SELL Asset A, BUY Asset B
+            elif z_score >= self.entry_threshold:
+                if self._position_state != "SHORT_SPREAD":
+                    self._position_state = "SHORT_SPREAD"
+                    return [
+                        SignalEvent(timestamp=bar.timestamp, symbol=self.symbol, signal_type=SignalType.SELL, metadata=meta),
+                        SignalEvent(timestamp=bar.timestamp, symbol=self.hedge_symbol, signal_type=SignalType.BUY, metadata=meta),
+                    ]
+            # 3. Exit Spread (|z| <= exit_threshold or crossed back through equilibrium boundary): Exit both legs
+            elif (
+                (self._position_state == "LONG_SPREAD" and (abs(z_score) <= self.exit_threshold or z_score >= -self.exit_threshold))
+                or (self._position_state == "SHORT_SPREAD" and (abs(z_score) <= self.exit_threshold or z_score <= self.exit_threshold))
+            ):
+                if self._position_state == "LONG_SPREAD":
+                    self._position_state = None
+                    return [
+                        SignalEvent(timestamp=bar.timestamp, symbol=self.symbol, signal_type=SignalType.SELL, metadata=meta),
+                        SignalEvent(timestamp=bar.timestamp, symbol=self.hedge_symbol, signal_type=SignalType.BUY, metadata=meta),
+                    ]
+                elif self._position_state == "SHORT_SPREAD":
+                    self._position_state = None
+                    return [
+                        SignalEvent(timestamp=bar.timestamp, symbol=self.symbol, signal_type=SignalType.BUY, metadata=meta),
+                        SignalEvent(timestamp=bar.timestamp, symbol=self.hedge_symbol, signal_type=SignalType.SELL, metadata=meta),
+                    ]
+            return None
+
+        # Legacy Single-Leg Mode:
         if z_score <= -self.entry_threshold:
             if not self._is_long:
                 self._is_long = True
-                return SignalEvent(
-                    timestamp=bar.timestamp,
-                    symbol=self.symbol,
-                    signal_type=SignalType.BUY,
-                    metadata={
-                        "z_score": round(z_score, 4),
-                        "hedge_ratio": round(beta, 4),
-                        "spread": round(float(spread_series.iloc[-1]), 4),
-                        "entry_threshold": self.entry_threshold,
-                        "hedge_symbol": self.hedge_symbol,
-                    },
-                )
-
-        # Exit signal: Spread reverts toward equilibrium
+                return SignalEvent(timestamp=bar.timestamp, symbol=self.symbol, signal_type=SignalType.BUY, metadata=meta)
         elif z_score >= -self.exit_threshold:
             if self._is_long:
                 self._is_long = False
-                return SignalEvent(
-                    timestamp=bar.timestamp,
-                    symbol=self.symbol,
-                    signal_type=SignalType.SELL,
-                    metadata={
-                        "z_score": round(z_score, 4),
-                        "hedge_ratio": round(beta, 4),
-                        "spread": round(float(spread_series.iloc[-1]), 4),
-                        "exit_threshold": self.exit_threshold,
-                        "hedge_symbol": self.hedge_symbol,
-                    },
-                )
+                return SignalEvent(timestamp=bar.timestamp, symbol=self.symbol, signal_type=SignalType.SELL, metadata=meta)
 
         return None

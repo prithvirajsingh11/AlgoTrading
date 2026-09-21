@@ -58,14 +58,26 @@ class RiskManager:
 
         for symbol, stop_price in self.position_stops.items():
             pos = portfolio.get_position(symbol)
-            if pos.quantity > 0 and symbol in current_prices:
+            if symbol in current_prices:
                 price = current_prices[symbol]
-                if price <= stop_price:
+                if pos.quantity > 0 and price <= stop_price:
                     order = Order(
                         symbol=symbol,
                         order_type=OrderType.MARKET,
                         side=OrderSide.SELL,
                         quantity=pos.quantity,
+                        created_at=timestamp,
+                    )
+                    valid, _ = self.validate_order(order, price, portfolio)
+                    if valid:
+                        stop_orders.append(order)
+                        triggered_symbols.append(symbol)
+                elif pos.quantity < 0 and price >= stop_price:
+                    order = Order(
+                        symbol=symbol,
+                        order_type=OrderType.MARKET,
+                        side=OrderSide.BUY,
+                        quantity=abs(pos.quantity),
                         created_at=timestamp,
                     )
                     valid, _ = self.validate_order(order, price, portfolio)
@@ -108,15 +120,23 @@ class RiskManager:
             if estimated_cost > portfolio.cash:
                 return False, f"Insufficient cash: Required ~${estimated_cost:.2f}, available ${portfolio.cash:.2f}"
 
-            # 4. Position concentration limit
-            post_trade_value = (pos.quantity + order.quantity) * current_price
-            if current_equity > 0 and (post_trade_value / current_equity) > (self.max_position_pct + 1e-4):
-                return False, f"Concentration limit exceeded: target {post_trade_value / current_equity:.1%} > max {self.max_position_pct:.1%}"
+            # 4. Position concentration limit (only when establishing or increasing long exposure)
+            new_qty = pos.quantity + order.quantity
+            if new_qty > 0 and new_qty > max(0.0, pos.quantity):
+                post_trade_value = new_qty * current_price
+                if current_equity > 0 and (post_trade_value / current_equity) > (self.max_position_pct + 1e-4):
+                    return False, f"Concentration limit exceeded: target {post_trade_value / current_equity:.1%} > max {self.max_position_pct:.1%}"
 
         elif order.side == OrderSide.SELL:
-            # 5. Long-only constraint check
+            # 5. Long-only or short constraint check
             if not self.allow_shorting:
                 if pos.quantity < order.quantity:
                     return False, f"Shorting not permitted: held {pos.quantity} shares, tried to sell {order.quantity}"
+            else:
+                new_qty = pos.quantity - order.quantity
+                if new_qty < 0 and abs(new_qty) > abs(min(0.0, pos.quantity)):
+                    short_exposure = abs(new_qty) * current_price
+                    if current_equity > 0 and (short_exposure / current_equity) > (self.max_position_pct + 1e-4):
+                        return False, f"Concentration limit exceeded: target {short_exposure / current_equity:.1%} > max {self.max_position_pct:.1%}"
 
         return True, None
