@@ -22,6 +22,7 @@ from backend.app.strategies.base import BaseStrategy
 from backend.app.strategies.momentum import MovingAverageCrossStrategy, TimeSeriesMomentumStrategy
 from backend.app.strategies.mean_reversion import MeanReversionStrategy
 from backend.app.strategies.pairs_trading import PairsTradingStrategy
+from backend.app.strategies.ml_strategy import MLStrategy
 
 from backend.app.backtesting.engine import BacktestEngine
 from backend.app.backtesting.broker import SimulatedBroker
@@ -33,6 +34,10 @@ from backend.app.risk.position_sizing import (
     BasePositionSizer,
 )
 from backend.app.risk.risk_manager import RiskManager
+from backend.app.ml.train import train_ml_pipeline
+from backend.app.ml.features import FeatureConfig
+from backend.app.ml.labels import LabelConfig
+from backend.app.ml.model import XGBoostModelConfig
 
 
 STRATEGY_REGISTRY: Dict[str, Type[BaseStrategy]] = {
@@ -40,6 +45,7 @@ STRATEGY_REGISTRY: Dict[str, Type[BaseStrategy]] = {
     "TimeSeriesMomentum": TimeSeriesMomentumStrategy,
     "MeanReversion": MeanReversionStrategy,
     "PairsTrading": PairsTradingStrategy,
+    "MLStrategy": MLStrategy,
 }
 
 
@@ -145,6 +151,37 @@ class ExperimentRunner:
             raise ValueError(f"Unknown strategy: '{config.strategy.name}'. Available: {list(STRATEGY_REGISTRY.keys())}")
 
         strat_params = dict(config.strategy.parameters)
+        classification_metrics_dict: Optional[Dict[str, Any]] = None
+        feature_importance_dict: Optional[Dict[str, float]] = None
+
+        if config.strategy.name == "MLStrategy":
+            if not strat_params.get("artifact") and not strat_params.get("artifact_path"):
+                ml_cfg = config.ml
+                f_cfg = FeatureConfig.from_dict(ml_cfg.features) if ml_cfg and ml_cfg.features else FeatureConfig()
+                l_cfg = LabelConfig.from_dict(ml_cfg.label) if ml_cfg and ml_cfg.label else LabelConfig()
+                m_cfg = XGBoostModelConfig.from_dict(ml_cfg.hyperparameters) if ml_cfg and ml_cfg.hyperparameters else XGBoostModelConfig(random_seed=config.seed)
+                scale_m = ml_cfg.scale_method if ml_cfg else "standard"
+                cal_m = ml_cfg.calibration if ml_cfg else "none"
+
+                train_res = train_ml_pipeline(
+                    df=df_eval,
+                    feature_config=f_cfg,
+                    label_config=l_cfg,
+                    model_config=m_cfg,
+                    scale_method=scale_m,
+                    calibration_method=cal_m,
+                    symbol=primary_symbol,
+                )
+                strat_params["artifact"] = train_res.artifact
+                if ml_cfg:
+                    strat_params["buy_threshold"] = ml_cfg.buy_threshold
+                    strat_params["sell_threshold"] = ml_cfg.sell_threshold
+                classification_metrics_dict = train_res.test_metrics.to_dict()
+                feature_importance_dict = train_res.artifact.feature_importance
+            else:
+                art = strat_params.get("artifact")
+                if art is not None and hasattr(art, "feature_importance"):
+                    feature_importance_dict = art.feature_importance
 
         # 5. Execution mode: standard vs walk_forward
         mode = config.backtesting.mode.lower()
@@ -302,6 +339,8 @@ class ExperimentRunner:
             execution_statistics=execution_stats,
             walk_forward_results=walk_forward_payload,
             ai_decision_stats=ai_decision_stats,
+            classification_metrics=classification_metrics_dict,
+            feature_importance=feature_importance_dict,
             warnings=warnings,
             created_at=created_at,
             completed_at=datetime.now(timezone.utc).isoformat(),
@@ -312,3 +351,51 @@ class ExperimentRunner:
             self.storage.save_experiment(result)
 
         return result
+
+
+def compare_strategy_providers(
+    experiments: List[ExperimentResult],
+) -> Dict[str, Any]:
+    """Builds unified comparative summary across Traditional, ML, and Jev experiments."""
+    comparisons = []
+    for exp in experiments:
+        cfg = exp.config
+        strat_name = cfg.get("strategy", {}).get("name", "Unknown")
+        is_jev = bool(cfg.get("jev") and cfg.get("jev", {}).get("enabled"))
+        is_ml = strat_name == "MLStrategy" or bool(cfg.get("ml") and cfg.get("ml", {}).get("enabled"))
+
+        if is_jev:
+            provider = "typesafe_jev"
+            cat = "jev_assisted"
+        elif is_ml:
+            provider = "xgboost"
+            cat = "machine_learning"
+        else:
+            provider = "rule_based"
+            cat = "traditional"
+
+        entry = {
+            "experiment_id": exp.experiment_id,
+            "strategy_name": strat_name,
+            "category": cat,
+            "provider": provider,
+            "trading_metrics": {
+                "total_return_pct": exp.metrics.get("total_return_pct"),
+                "cagr": exp.metrics.get("cagr"),
+                "sharpe_ratio": exp.metrics.get("sharpe_ratio"),
+                "sortino_ratio": exp.metrics.get("sortino_ratio"),
+                "max_drawdown_pct": exp.metrics.get("max_drawdown_pct"),
+                "win_rate": exp.metrics.get("win_rate"),
+                "profit_factor": exp.metrics.get("profit_factor"),
+                "total_trades": exp.metrics.get("total_trades"),
+            },
+            "classification_metrics": exp.classification_metrics,
+            "ai_decision_stats": exp.ai_decision_stats,
+            "feature_importance": exp.feature_importance,
+        }
+        comparisons.append(entry)
+
+    return {
+        "count": len(comparisons),
+        "comparisons": comparisons,
+    }

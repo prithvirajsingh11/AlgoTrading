@@ -64,6 +64,20 @@ class JevConfig:
 
 
 @dataclass
+class MLConfig:
+    enabled: bool = False
+    model_type: str = "xgboost"
+    features: Dict[str, Any] = field(default_factory=dict)
+    label: Dict[str, Any] = field(default_factory=dict)
+    hyperparameters: Dict[str, Any] = field(default_factory=dict)
+    buy_threshold: float = 0.55
+    sell_threshold: float = 0.45
+    calibration: str = "none"
+    scale_method: str = "standard"
+    model_version: str = "v1.0.0"
+
+
+@dataclass
 class ExperimentConfig:
     """Canonical experiment configuration containing full reproducibility specification."""
 
@@ -74,6 +88,7 @@ class ExperimentConfig:
     risk: RiskConfig = field(default_factory=RiskConfig)
     backtesting: BacktestingConfig = field(default_factory=BacktestingConfig)
     jev: Optional[JevConfig] = None
+    ml: Optional[MLConfig] = None
     seed: int = 42
     description: str = ""
 
@@ -143,6 +158,22 @@ class ExperimentConfig:
                 timeout_seconds=float(j_cfg.get("timeout_seconds", 5.0)),
             )
 
+        ml = None
+        m_cfg = data.get("ml")
+        if m_cfg is not None:
+            ml = MLConfig(
+                enabled=bool(m_cfg.get("enabled", False)),
+                model_type=str(m_cfg.get("model_type", "xgboost")),
+                features=dict(m_cfg.get("features", {})),
+                label=dict(m_cfg.get("label", {})),
+                hyperparameters=dict(m_cfg.get("hyperparameters", {})),
+                buy_threshold=float(m_cfg.get("buy_threshold", 0.55)),
+                sell_threshold=float(m_cfg.get("sell_threshold", 0.45)),
+                calibration=str(m_cfg.get("calibration", "none")),
+                scale_method=str(m_cfg.get("scale_method", "standard")),
+                model_version=str(m_cfg.get("model_version", "v1.0.0")),
+            )
+
         return cls(
             dataset=dataset,
             strategy=strategy,
@@ -151,6 +182,7 @@ class ExperimentConfig:
             risk=risk,
             backtesting=backtesting,
             jev=jev,
+            ml=ml,
             seed=int(data.get("seed", 42)),
             description=str(data.get("description", "")),
         )
@@ -192,6 +224,10 @@ def compute_config_hash(config: Union[ExperimentConfig, Dict[str, Any]]) -> str:
     # Include jev configuration if provided and enabled (or explicitly specified)
     if cfg_dict.get("jev") is not None:
         clean_dict["jev"] = cfg_dict.get("jev")
+
+    # Include ml configuration if provided
+    if cfg_dict.get("ml") is not None:
+        clean_dict["ml"] = cfg_dict.get("ml")
 
     canonical_json = json.dumps(clean_dict, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
     return hashlib.sha256(canonical_json.encode("utf-8")).hexdigest()

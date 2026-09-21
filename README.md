@@ -527,6 +527,91 @@ Jev is **disabled by default**. To configure and enable Jev:
 
 ---
 
+## Machine Learning Research (Phase 9)
+
+AlgoTrade includes an end-to-end supervised machine learning research pipeline powered by **XGBoost**. The ML module is decoupled from execution and broker systems, enforces strict zero-lookahead feature calculation, supports time-aware chronological evaluation, and emits versioned model artifacts with strict schema validation.
+
+### Architecture & Pipeline Flow
+
+```
+Market Data (OHLCV)
+       │
+       ▼
+Feature Pipeline (Strictly 0..t: Returns, SMA/EMA Distances, RSI, MACD, ATR, Volatility, Volume)
+       │
+       ▼
+Target / Label Generator (Supervised ground truth: close[t + N] / close[t] - 1 > threshold)
+       │
+       ▼
+Supervised Alignment (Trim warmup and horizon NaNs, preserve temporal order)
+       │
+       ▼
+Time-Series Splitter (Train [0..i1) -> Validation [i1..i2) -> Test [i2..N); Scaler fit ONLY on Train)
+       │
+       ▼
+XGBoost Classifier (Deterministic training with fixed seed, early stopping on validation)
+       │
+       ▼
+Model Calibration (Platt Sigmoid / Isotonic Regression / Brier Score assessment)
+       │
+       ▼
+Versioned MLModelArtifact (Model JSON, Feature Order, Schema Hash, Scaler State)
+       │
+       ▼
+Inference / MLPredictor (Outputs structured MLPrediction with P(up) and P(down))
+       │
+       ▼
+MLStrategy (BaseStrategy implementation: P(up) >= buy_thresh -> BUY, P(up) <= sell_thresh -> SELL)
+       │
+       ▼
+Authoritative RiskManager (Position sizing, 50% concentration limit, 30% drawdown breaker)
+       │
+       ▼
+Simulated Broker -> Portfolio
+```
+
+### ML Data Leakage Prevention
+
+Financial time-series data is uniquely vulnerable to catastrophic data leakage. AlgoTrade implements 5 verifiable data leakage safeguards:
+
+1. **Information Barrier:** Future price information ($Close_{t+N}$) is permitted **strictly** for generating supervised training labels ($y$). Future prices and returns are strictly barred from entering the feature matrix ($X$).
+2. **Zero-Lookahead Feature Invariant:** Every indicator feature at timestamp $t$ is calculated exclusively from historical bars in the closed interval $[0 \dots t]$. Mutating future prices at $t+1$ produces zero change in feature values at or before $t$.
+3. **Chronological Splitting:** Random train/test splits and standard K-fold cross validation are forbidden. Partitions strictly follow chronological order: $T_{\text{train}} < T_{\text{val}} < T_{\text{test}}$.
+4. **Out-of-Sample Test Isolation:** The final test set is quarantined during feature scaling and model selection. Feature scalers (e.g., `StandardScaler`, `MinMaxScaler`) are fit **only** on the training partition ($X_{\text{train}}$) and applied downstream.
+5. **Walk-Forward ML Isolation:** In walk-forward ML evaluation, models are trained on past data, frozen, and evaluated on out-of-sample test windows without retraining on future test data.
+
+### Model Evaluation: Classification vs Trading Performance
+
+AlgoTrade explicitly decouples **Classification Metrics** from **Trading Metrics**:
+
+- **Classification Metrics:** Accuracy, Precision, Recall, F1 Score, ROC-AUC, Log-Loss, and Brier Score measure statistical discrimination on the discrete prediction problem ($P(\text{return} > \text{threshold})$).
+- **Trading Metrics:** Total Return, CAGR, Sharpe Ratio, Sortino Ratio, Maximum Drawdown, Profit Factor, and Win Rate measure real-world portfolio outcomes after accounting for execution costs, slippage, trade frequency, and holding duration.
+
+> [!WARNING]
+> **The Accuracy Fallacy:** High classification accuracy does not guarantee profitable trading. A model with 65% directional accuracy can lose capital if its losing trades are larger than its winning trades, if transaction costs and bid-ask slippage erode small gains, or if severe drawdowns trigger risk-management liquidations. Conversely, a strategy with 40% accuracy can be highly profitable if its winners significantly outperform its losers (positive asymmetry).
+
+### Strategy Comparison: Traditional vs XGBoost vs Jev
+
+AlgoTrade provides a unified interface to compare quantitative strategies across three distinct paradigms:
+
+| Dimension | Traditional Rule-Based (Momentum, Mean Reversion) | Supervised ML (XGBoost) | Advisory AI (Jev Decision Layer) |
+| :--- | :--- | :--- | :--- |
+| **Paradigm** | Fixed mathematical hypotheses | Supervised non-linear pattern learning | Multi-criteria probabilistic evaluation |
+| **Inputs** | Indicator formulas (e.g., MA cross, Z-score) | 19 zero-lookahead engineered technical features | Compact structured market state snapshot |
+| **Output** | Deterministic boolean signal | Directional probability distribution $P(\text{up})$ | Structured decision (`BUY`, `SELL`, `HOLD`, `NO_ACTION`) |
+| **Role** | Primary signal generator | Primary signal generator (`MLStrategy`) | Secondary filter / signal confirmation |
+| **Dependencies** | Offline / Zero external dependencies | Offline / Local XGBoost library | Remote HTTP API (TypeSafe SystemOne) |
+| **Cost** | Zero | Local compute | Per-query API calls (mitigated by persistent cache) |
+
+### Important Limitations & Risk Disclaimers
+
+- **Non-Stationarity:** Financial market distributions drift over time. Relationships learned on historical data may degrade or fail during regime changes.
+- **Transaction Costs & Slippage:** Friction costs significantly impact active ML strategies. Real-world execution differs from simulated backtesting.
+- **No Guarantee of Alpha:** Historical backtest results and high statistical test scores do not guarantee future profitability.
+- **Research Only:** AlgoTrade is strictly a research and simulation platform. It does not provide financial advice and does not connect to live money trading accounts.
+
+---
+
 ## Roadmap
 
  - [x] **Phase 1:** Project foundation and modular architecture.
@@ -539,6 +624,6 @@ Jev is **disabled by default**. To configure and enable Jev:
  - [x] **Phase 7.1:** True Multi-Asset Pairs Trading & Realistic Stop-Loss Execution (70 passing tests).
  - [x] **Phase 8:** Quantitative Research Platform & Reproducibility (94 passing tests).
  - [x] **Phase 8.1:** Jev AI Decision Layer (TypeSafe SystemOne, 112 passing tests).
- - [ ] **Phase 9:** Machine Learning feature pipeline & XGBoost predictive model.
+ - [x] **Phase 9:** Machine Learning feature pipeline & XGBoost predictive model (133 passing tests).
  - [ ] **Phase 10:** Real-time paper-trading session daemon.
  - [ ] **Phase 11:** React + TypeScript interactive analytics dashboard.
