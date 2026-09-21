@@ -32,3 +32,6 @@ Thumbs.db
 # Data artifacts
 data/models/*.pkl
 data/models/*.joblib
+*.db
+*.sqlite
+*.sqlite3

@@ -9,6 +9,8 @@ from backend.app.api.routes_strategy import router as strategy_router
 from backend.app.api.routes_backtest import router as backtest_router
 from backend.app.api.routes_portfolio import router as portfolio_router
 from backend.app.api.routes_paper import router as paper_router
+from backend.app.api.routes_datasets import router as datasets_router
+from backend.app.api.routes_experiments import router as experiments_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -40,6 +42,8 @@ app.include_router(strategy_router, prefix=api_v1_prefix)
 app.include_router(backtest_router, prefix=api_v1_prefix)
 app.include_router(portfolio_router, prefix=api_v1_prefix)
 app.include_router(paper_router, prefix=api_v1_prefix)
+app.include_router(datasets_router, prefix=api_v1_prefix)
+app.include_router(experiments_router, prefix=api_v1_prefix)
 
 
 @app.get("/health", tags=["Health"])
