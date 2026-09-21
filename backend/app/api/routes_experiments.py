@@ -36,6 +36,29 @@ def list_experiments(limit: int = 100) -> List[Dict[str, Any]]:
     return storage.list_experiments(limit=limit)
 
 
+class ExperimentCompareRequest(BaseModel):
+    experiment_ids: List[str] = Field(..., description="List of experiment IDs to compare")
+
+
+@router.post("/compare", response_model=Dict[str, Any])
+def compare_experiments(req: ExperimentCompareRequest) -> Dict[str, Any]:
+    """Compares multiple experiments across Traditional, ML, and Jev dimensions."""
+    if not req.experiment_ids:
+        raise HTTPException(status_code=400, detail="experiment_ids cannot be empty.")
+
+    experiments = []
+    for exp_id in req.experiment_ids:
+        res = storage.load_experiment(exp_id)
+        if res is not None:
+            experiments.append(res)
+
+    if not experiments:
+        raise HTTPException(status_code=404, detail="None of the specified experiments were found.")
+
+    from backend.app.research.runner import compare_strategy_providers
+    return compare_strategy_providers(experiments)
+
+
 @router.get("/{experiment_id}", response_model=Dict[str, Any])
 def get_experiment(experiment_id: str) -> Dict[str, Any]:
     """Retrieves full experiment artifacts (equity curves, trades, metrics, configs)."""

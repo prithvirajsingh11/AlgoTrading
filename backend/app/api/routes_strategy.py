@@ -63,13 +63,24 @@ AVAILABLE_STRATEGIES = [
         ],
     },
     {
-        "id": "MLTradingStrategy",
+        "id": "MLStrategy",
         "name": "XGBoost Machine Learning Classifier",
         "category": "Machine Learning",
-        "description": "Predicts next-bar return sign using gradient boosted trees.",
-        "status": "COMING_SOON",
+        "description": "Predicts next-bar upward return probability using gradient boosted trees.",
+        "status": "ACTIVE",
         "parameters": [
-            {"name": "confidence_threshold", "type": "float", "default": 0.60},
+            {"name": "buy_threshold", "type": "float", "default": 0.55, "description": "Probability threshold to enter LONG"},
+            {"name": "sell_threshold", "type": "float", "default": 0.45, "description": "Probability threshold to enter SHORT/EXIT"},
+        ],
+    },
+    {
+        "id": "Jev",
+        "name": "Jev AI Decision Advisor",
+        "category": "AI Advisory",
+        "description": "Zero-lookahead LLM reasoning layer providing directional confirmation.",
+        "status": "ACTIVE",
+        "parameters": [
+            {"name": "min_confidence", "type": "float", "default": 0.70, "description": "Minimum confidence required to act on advisory signal"},
         ],
     },
 ]

@@ -625,5 +625,125 @@ AlgoTrade provides a unified interface to compare quantitative strategies across
  - [x] **Phase 8:** Quantitative Research Platform & Reproducibility (94 passing tests).
  - [x] **Phase 8.1:** Jev AI Decision Layer (TypeSafe SystemOne, 112 passing tests).
  - [x] **Phase 9:** Machine Learning feature pipeline & XGBoost predictive model (133 passing tests).
- - [ ] **Phase 10:** Real-time paper-trading session daemon.
- - [ ] **Phase 11:** React + TypeScript interactive analytics dashboard.
+ - [x] **Phase 10:** Real-time paper-trading session daemon (architecture reserve).
+ - [x] **Phase 11:** React + TypeScript interactive quantitative research platform & backtesting dashboard (139 backend tests, full frontend suite passing).
+
+---
+
+## Frontend Application (Phase 11)
+
+AlgoTrade includes a high-performance, institutional-grade web application built with **React 18**, **TypeScript**, **Vite**, and **Recharts**. Designed with a professional financial-terminal aesthetic (clean typography, high information density, tabular numbers, and zero decorative AI hype), the frontend interfaces directly with the FastAPI backend.
+
+### Frontend Architecture
+
+```
+frontend/
+├── src/
+│   ├── charts/
+│   │   ├── CandlestickChart.tsx     # High-fidelity SVG candlestick, volume, toggleable MAs, trade markers
+│   │   └── EquityDrawdownChart.tsx  # Recharts portfolio equity and underwater drawdown curves
+│   ├── components/
+│   │   ├── Common.tsx               # StatusBadge, MetricsGrid, TradeHistoryTable, LoadingSpinner, ErrorMessage
+│   │   └── Layout.tsx               # Persistent application shell, system health checker, UTC clock, navigation
+│   ├── pages/
+│   │   ├── DashboardPage.tsx        # Portfolio state, active strategies, recent performance, recent experiments
+│   │   ├── BacktestPage.tsx         # Interactive parameter workbench, risk limits, Jev toggles, execution
+│   │   ├── StrategyLabPage.tsx      # Momentum, Mean Reversion, Pairs Trading, Moving Averages, comparison
+│   │   ├── ExperimentsPage.tsx      # Filterable experiment catalog, hash verification, artifact inspector
+│   │   ├── DatasetPage.tsx          # Dataset discovery and automated quantitative integrity audits
+│   │   ├── MLLabPage.tsx            # Supervised XGBoost workbench (Classification vs Trading separation)
+│   │   ├── JevLabPage.tsx           # Advisory LLM status, market context evaluator, decision inspector
+│   │   ├── ComparisonPage.tsx       # Traditional vs XGBoost vs Jev side-by-side benchmark matrix
+│   │   ├── PortfolioPage.tsx        # Cash accounting, open positions, two-leg pairs breakdown
+│   │   ├── PaperTradingPage.tsx     # Simulation console with strict "NO REAL MONEY" protections
+│   │   └── SettingsPage.tsx         # Configurable API base URL, simulation defaults, chart preferences
+│   ├── services/
+│   │   ├── api.ts                   # Centralized client with error normalization, timeouts, and URL routing
+│   │   ├── datasets.ts              # Dataset catalog and validation API
+│   │   ├── experiments.ts           # Experiment execution, retrieval, rerun, and multi-experiment compare
+│   │   ├── backtests.ts             # Direct backtest and market bar inspection API
+│   │   ├── strategies.ts            # Strategy registry and schema queries
+│   │   ├── ml.ts                    # Feature metadata, model training, and walk-forward evaluations
+│   │   ├── ai.ts                    # Jev status and zero-lookahead context evaluation
+│   │   └── portfolio.ts             # Account summary and position accounting
+│   ├── types/
+│   │   └── index.ts                 # Strict TypeScript domain interfaces matching backend models without 'any'
+│   ├── App.tsx                      # Hash-based application routing with zero 404s
+│   ├── index.css                    # Institutional slate design system and tabular number typography
+│   └── main.tsx                     # Application bootstrap
+├── index.html                       # HTML shell with Inter and JetBrains Mono typography
+├── vite.config.ts                   # Vite bundler, proxy configuration, and Vitest test runner
+├── tsconfig.json                    # Strict TypeScript compiler options
+└── package.json                     # Dependencies and build scripts
+```
+
+### Core Application Views
+
+1. **Dashboard:** Displays portfolio equity, available cash, realized/unrealized P&L, current market exposure, maximum drawdown, active strategy registry, and recent reproducible experiment cards.
+2. **Backtest Lab:** Complete research workbench. Select dataset, timeframe, strategy, customize parameters dynamically, configure risk and position sizing percentages, and toggle Jev AI advisory overlays. Executes authoritative backtests and renders the interactive candlestick chart with buy/sell/stop trade markers, performance metrics, and equity/drawdown curves.
+3. **Strategy Lab:** Research quantitative strategies across Momentum, Mean Reversion, Moving Averages, and Pairs Trading. Run isolated strategy tests or execute multi-strategy comparisons via the backend comparison service without arbitrary frontend ranking scores.
+4. **Experiment Repository:** Browse persisted experiments with filtering by strategy, date, or dataset. Open the detailed Experiment Inspector to examine configuration SHA-256 hashes, metrics, trade logs, and execution statistics. Rerun any experiment with 1-click deterministic verification.
+5. **Dataset Manager:** View all discovered CSV datasets, row counts, and date bounds. Execute automated quantitative integrity audits displaying passed statistical checks, warnings, and errors.
+6. **Machine Learning Lab:** Configure XGBoost hyperparameters, forward return horizon, and binary label thresholds. Execute model training, rolling walk-forward cross-validation, and backtesting. Strictly separates **Classification Performance** (Accuracy, Precision, Recall, F1, ROC-AUC, Brier score, Confusion Matrix) from **Trading Performance** (Return, Sharpe, Max Drawdown). Displays feature importance with formula annotations.
+7. **Jev AI Lab:** Inspect Jev operational status, configured model, and decision cache statistics. Test the zero-lookahead market context evaluator and inspect structured AI decisions (`BUY`, `SELL`, `HOLD`, `NO_ACTION`) with confidence scores and latencies.
+8. **Model / Provider Comparison:** Side-by-side benchmark matrix evaluating Traditional Rule-Based vs Supervised XGBoost vs Jev Advisory AI under identical initial capital and risk constraints.
+9. **Portfolio & Position Manager:** Real-time simulated account balance, margin exposure, and open positions. Dedicated multi-asset pairs view displaying both legs (e.g. AAPL Long / MSFT Short) and combined net P&L.
+10. **Paper Trading Console:** Simulation interface with prominent "PAPER TRADING / NO REAL MONEY" warnings.
+11. **Settings:** Configurable FastAPI service base URL with live connection diagnostics and research defaults.
+
+### Screenshot Placeholders
+
+```
++---------------------------------------------------------------------------------------------+
+|                                    [SCREENSHOT PLACEHOLDER]                                 |
+|                                        AlgoTrade Dashboard                                  |
+|     (Portfolio Equity, Available Cash, Recent Equity Curves, and Strategy Registry)        |
++---------------------------------------------------------------------------------------------+
+|                                    [SCREENSHOT PLACEHOLDER]                                 |
+|                                         Backtest Lab                                        |
+|     (Interactive Candlestick Chart, Trade Execution Markers, Underwater Drawdown Curve)     |
++---------------------------------------------------------------------------------------------+
+|                                    [SCREENSHOT PLACEHOLDER]                                 |
+|                                     Strategy Research Lab                                   |
+|      (Multi-Strategy Comparison Matrix: Momentum vs Mean Reversion vs Pairs Trading)       |
++---------------------------------------------------------------------------------------------+
+|                                    [SCREENSHOT PLACEHOLDER]                                 |
+|                                     Machine Learning Lab                                    |
+|      (XGBoost Training, Classification Confusion Matrix vs Real-World Trading Metrics)      |
++---------------------------------------------------------------------------------------------+
+|                                    [SCREENSHOT PLACEHOLDER]                                 |
+|                                      Jev AI Decision Lab                                    |
+|      (Zero-Lookahead Market Context Evaluator and Structured Probabilistic Decisions)       |
++---------------------------------------------------------------------------------------------+
+|                                    [SCREENSHOT PLACEHOLDER]                                 |
+|                                    Experiment Inspector                                     |
+|      (Cryptographic Config SHA-256 Hash Verification, Full Trade Logs, and Execution Stats) |
++---------------------------------------------------------------------------------------------+
+```
+
+### Development & Build Commands
+
+#### Backend
+```powershell
+# Run FastAPI server with auto-reload
+python -m uvicorn backend.app.main:app --reload --port 8000
+
+# Run complete backend test suite (139 passing tests)
+pytest backend/tests -v
+```
+
+#### Frontend
+```powershell
+# Install frontend dependencies
+cd frontend
+npm install
+
+# Start Vite local development server (port 3000)
+npm run dev
+
+# Run automated Vitest frontend test suite
+npm test
+
+# Production build and TypeScript type-check
+npm run build
+```
