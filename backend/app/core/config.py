@@ -31,5 +31,13 @@ class Settings(BaseSettings):
     default_commission_percent: float = 0.0005  # 5 bps
     default_slippage_bps: float = 5.0           # 5 bps = 0.05%
 
+    # Jev AI Decision Layer (TypeSafe SystemOne)
+    jev_api_key: Optional[str] = None
+    jev_model: str = "jev-latest"
+    jev_enabled: bool = False
+    jev_timeout_seconds: float = 5.0
+    jev_min_confidence: float = 0.60
+    jev_api_url: str = "https://api.typesafe.ai/v1/systemone"
+
 
 settings = Settings()

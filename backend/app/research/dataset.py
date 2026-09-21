@@ -35,12 +35,12 @@ class DatasetMetadata:
             "dataset_id": self.dataset_id,
             "symbols": self.symbols,
             "timeframe": self.timeframe,
-            "start_timestamp": self.start_timestamp.isoformat() if self.start_timestamp else None,
-            "end_timestamp": self.end_timestamp.isoformat() if self.end_timestamp else None,
+            "start_timestamp": self.start_timestamp.isoformat() if hasattr(self.start_timestamp, "isoformat") else (str(self.start_timestamp) if self.start_timestamp else None),
+            "end_timestamp": self.end_timestamp.isoformat() if hasattr(self.end_timestamp, "isoformat") else (str(self.end_timestamp) if self.end_timestamp else None),
             "row_count": self.row_count,
             "source": self.source,
             "validation_status": self.validation_status,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": self.created_at.isoformat() if hasattr(self.created_at, "isoformat") else (str(self.created_at) if self.created_at else None),
             "file_path": str(self.file_path) if self.file_path else None,
         }
 
@@ -113,6 +113,8 @@ class DatasetManager:
         )
         self._custom_metadata[dataset_id] = meta
         return meta
+
+    register_dataframe = register_in_memory_dataset
 
     def discover_datasets(self) -> List[DatasetMetadata]:
         """Scans raw_data_dir and indexed in-memory datasets, returning metadata list."""

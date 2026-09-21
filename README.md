@@ -6,8 +6,14 @@ A computer science portfolio project implementing a quantitative trading researc
 
 ---
 
-## Key Features (Phases 1–8)
+## Key Features (Phases 1–8.1)
 
+- **Optional Jev AI Decision Layer (Phase 8.1):**
+  - **TypeSafe SystemOne Integration:** Machine-native structured decision questions (`POST https://api.typesafe.ai/v1/systemone`) evaluating compact market context.
+  - **Advisory Architecture:** Jev advises and filters strategy signals; deterministic Risk Manager, Broker, and Portfolio remain authoritative.
+  - **Zero Lookahead Context Builder:** Strictly derives single-asset and pairs-trading indicators (SMA, EMA, RSI, MACD, ATR, volatility, hedge ratio, spread z-score) on historical slice $0..t$.
+  - **Deterministic Decision Caching:** SHA-256 keyed cache (`config_hash + model + timestamp + symbol + context_hash`) enabling exact offline replay without repeat API calls (`CACHED_JEV` vs `LIVE_JEV`).
+  - **Fail-Safe Fallback:** Network timeouts, HTTP errors, and confidence below `min_confidence` (default 0.60) automatically fail safe to `NO_ACTION` without order submission.
 - **Quantitative Research Platform (Phase 8):**
   - **Dataset Management & Non-Throwing Validation:** `DatasetMetadata`, `DatasetManager`, and structured `ValidationReport` checking OHLC integrity, zero/negative prices, chronological order, duplicates, NaNs, and price spikes.
   - **Declarative Experiment Configuration & Canonical Hashing:** Fully serializable `ExperimentConfig` with deterministic SHA-256 hashing across data, strategy, risk, execution, and walk-forward parameters.
@@ -15,7 +21,7 @@ A computer science portfolio project implementing a quantitative trading researc
   - **Overfitting Safeguards & Chronological Splitting:** Non-overlapping chronological train/validation/test partitioning with test-set quarantine and zero temporal shuffling.
   - **Grid Parameter Sweeps & Leaderboards:** `ParameterSweepRunner` across discrete parameter combinations with multi-metric sorting and train/test evaluation.
   - **Artifact Persistence:** Plug-and-play storage interface with `SQLiteExperimentStorage` recording experiments, configs, metrics, and equity series.
-  - **Unified CLI & REST API:** Full CLI (`python -m backend.app.cli`) and FastAPI endpoints (`/api/v1/datasets`, `/api/v1/experiments`).
+  - **Unified CLI & REST API:** Full CLI (`python -m backend.app.cli`) and FastAPI endpoints (`/api/v1/datasets`, `/api/v1/experiments`, `/api/v1/ai/jev`).
 - **Event-Driven Backtest Engine:** Chronological bar-by-bar execution model with zero future lookahead bias.
 - **Production-Quality Trading Strategies:**
   - `MovingAverageCrossStrategy`: Dual fast/slow moving average trend following.
@@ -33,7 +39,7 @@ A computer science portfolio project implementing a quantitative trading researc
 - **Complete Financial Accounting:**
   - Real-time cash balance tracking, positions with weighted average entry prices, realized/unrealized P&L reconciliation, mark-to-market portfolio equity.
 - **Automated Verification:**
-  - 94 unit and integration tests covering all critical components with 100% pass rate.
+  - 112 automated unit and integration tests covering all critical components with 100% pass rate.
 
 ---
 
@@ -83,17 +89,23 @@ AlgoTrading/
 │   │   │   ├── routes_portfolio.py    # Portfolio inspection endpoint
 │   │   │   ├── routes_paper.py        # Paper trading session stubs
 │   │   │   ├── routes_datasets.py     # Research dataset metadata & validation endpoints
-│   │   │   └── routes_experiments.py  # Research experiment execution, listing, & re-run
+│   │   │   ├── routes_experiments.py  # Research experiment execution, listing, & re-run
+│   │   │   └── routes_ai.py           # Jev AI decision engine status & evaluation
+│   │   ├── ai/                        # Optional AI decision layer (Phase 8.1)
+│   │   │   ├── jev_client.py          # TypeSafe SystemOne API client
+│   │   │   ├── jev_schema.py          # Decision schemas (BUY, SELL, HOLD, NO_ACTION)
+│   │   │   ├── jev_context.py         # Zero-lookahead market context builder
+│   │   │   └── jev_decision.py        # DecisionProvider, caching & test mocks
 │   │   ├── research/                  # Quantitative research & reproducibility engine
 │   │   │   ├── dataset.py             # DatasetMetadata & DatasetManager abstraction
 │   │   │   ├── validator.py           # DatasetValidator & structured ValidationReport
-│   │   │   ├── config.py              # ExperimentConfig & canonical SHA-256 hash
+│   │   │   ├── config.py              # ExperimentConfig, JevConfig & canonical hashing
 │   │   │   ├── result.py              # JSON-serializable ExperimentResult & drawdown curve
 │   │   │   ├── splits.py              # Chronological train/val/test splits & quarantine
 │   │   │   ├── storage.py             # BaseExperimentStorage & SQLite persistence
 │   │   │   ├── runner.py              # ExperimentRunner (backtest & walk-forward)
 │   │   │   └── sweep.py               # ParameterSweepRunner & multi-metric ranking
-│   │   ├── cli.py                     # Quantitative research CLI tool
+│   │   ├── cli.py                     # Quantitative research & AI CLI tool
 │   │   ├── core/
 │   │   │   ├── config.py              # Pydantic configuration & env loading
 │   │   │   └── database.py            # Database session & engine setup
@@ -108,7 +120,7 @@ AlgoTrading/
 │   │   │   ├── pairs_trading.py       # True multi-asset PairsTradingStrategy
 │   │   │   └── ml_strategy.py         # ML strategy integration stub
 │   │   ├── backtesting/
-│   │   │   ├── engine.py              # Chronological event-driven engine
+│   │   │   ├── engine.py              # Chronological event-driven engine + AI decision hook
 │   │   │   ├── broker.py              # Simulated broker (slippage, fees, stops, limits)
 │   │   │   ├── orders.py              # Order, Signal, Trade data models
 │   │   │   └── portfolio.py           # Multi-asset long/short position accounting
@@ -122,7 +134,7 @@ AlgoTrading/
 │   │   │   ├── evaluate.py            # Model evaluation stubs
 │   │   │   └── model.py               # ML model wrapper stub
 │   │   └── main.py                    # FastAPI application entry point
-│   ├── tests/                         # Comprehensive pytest test suite (94 passing tests)
+│   ├── tests/                         # Comprehensive pytest test suite (112 passing tests)
 │   ├── Dockerfile
 │   └── requirements.txt
 ├── frontend/                          # React + TypeScript scaffold
@@ -386,9 +398,15 @@ python -m backend.app.cli run-experiment --config config.json --db experiments.d
 
 # 4. Execute a parameter sweep
 python -m backend.app.cli sweep --config-template config.json --param-grid '{"strategy.parameters.lookback_period": [10, 20, 30]}' --sort-by sharpe_ratio
+
+# 5. Check Jev AI decision layer status
+python -m backend.app.cli jev-status
+
+# 6. Evaluate market context with Jev AI
+python -m backend.app.cli jev-evaluate '{"symbol": "AAPL", "price": 175.50, "rsi_14": 42.0, "timestamp": "2023-05-01"}'
 ```
 
-### Research REST API Endpoints
+### Research & AI REST API Endpoints
 
 - `GET /api/v1/datasets`: List all discovered datasets and summary metadata.
 - `GET /api/v1/datasets/{id}`: Detailed dataset metadata (timeframe, row count, date ranges).
@@ -397,6 +415,115 @@ python -m backend.app.cli sweep --config-template config.json --param-grid '{"st
 - `GET /api/v1/experiments`: List stored experiments with pagination and tag filtering.
 - `GET /api/v1/experiments/{id}`: Fetch complete experiment result with equity/drawdown curves.
 - `POST /api/v1/experiments/{id}/rerun`: Rerun experiment from saved configuration and verify reproducibility.
+- `GET /api/v1/ai/jev/status`: Operational status, configured model, and provider health.
+- `POST /api/v1/ai/jev/evaluate`: Evaluate structured market context through active decision provider.
+
+---
+
+## Jev AI Decision Layer (Phase 8.1)
+
+AlgoTrade integrates **Jev** (via TypeSafe's SystemOne API) as an optional, modular AI decision layer. Jev evaluates machine-readable market context and issues structured, probabilistic decisions (`BUY`, `SELL`, `HOLD`, `NO_ACTION`) to confirm or suppress signals generated by underlying strategies.
+
+### Target Architecture & Decision Flow
+
+```
+Market Data
+    │
+    ▼
+Feature Engine (SMA, EMA, RSI, MACD, ATR, Volatility)
+    │
+    ▼
+Existing Strategies (Momentum, Mean Reversion, Pairs Trading)
+    │
+    ▼
+Strategy Signals + Historical Market Context
+    │
+    ▼
+┌───────────────────────────────────────────────┐
+│        OPTIONAL JEV DECISION ENGINE           │
+│  (TypeSafe SystemOne 'choice' API Evaluation) │
+└───────────────────────┬───────────────────────┘
+                        │
+                        ▼
+             Structured AI Decision
+       (BUY / SELL / HOLD / NO_ACTION)
+                        │
+                        ▼
+                   Risk Manager
+      (Position limits, stops, cash & exposure)
+                        │
+                        ▼
+                   Order Engine
+                        │
+                        ▼
+                 Simulated Broker
+            (Slippage, fees, stops, limits)
+                        │
+                        ▼
+                   Portfolio
+        (Cash, positions, P&L reconciliation)
+```
+
+### Authoritative Architecture & Safety Controls
+
+1. **Advisory Role Only:** Jev produces recommendations; it **never** directly submits exchange or broker orders.
+2. **Authoritative Risk Manager:** All orders must satisfy cash availability, position concentration limits ($\le 50\%$), and drawdown circuit breakers ($\le 30\%$). Jev cannot bypass protective stop-losses or risk limits.
+3. **Structured Decisions:** Free-form text prompts are prohibited. Requests follow TypeSafe's `choice` primitive:
+   ```json
+   {
+     "model": "jev-latest",
+     "state": "{ ...compact market context... }",
+     "questions": {
+       "trading_action": {
+         "type": "choice",
+         "instructions": "Given the supplied market state, which trading action is most appropriate?",
+         "criteria": {
+           "BUY": "Conditions favor taking or increasing a long exposure",
+           "SELL": "Conditions favor reducing or taking short exposure",
+           "HOLD": "Conditions do not justify changing exposure"
+         }
+       }
+     }
+   }
+   ```
+4. **Confidence Thresholding:** Configurable via `min_confidence` (default 0.60). If model confidence is below threshold, the decision is demoted to `HOLD` and signal execution is suppressed.
+5. **Fail-Safe Fallback:** On API timeouts, network errors, HTTP 500s, or invalid JSON, Jev automatically falls back to `NO_ACTION` and logs the incident. No orders are executed.
+6. **Zero Future Lookahead Guarantee:** The market context builder derives all indicators (SMA, EMA, RSI, MACD, ATR, Volatility, Hedge Ratio, Spread) strictly on the chronological slice $0..t$. Future prices, returns, indicators, and backtest outcomes are strictly excluded.
+7. **Deterministic Decision Cache:** Replaying experiments utilizes a persistent SHA-256 cache keyed by `(config_hash, model, timestamp, symbol, context_hash)`. Cached runs record `source: "CACHED_JEV"` and live queries record `source: "LIVE_JEV"`, enabling bit-for-bit reproducibility without recurring API costs.
+
+### Jev vs Traditional Strategies
+
+| Dimension | Traditional Strategies (Momentum, Mean Reversion) | Jev AI Decision Layer |
+| :--- | :--- | :--- |
+| **Role** | Core quantitative hypothesis & signal generation | Secondary probabilistic confirmation / filtering |
+| **Logic** | Deterministic mathematical formulas | Multi-feature probabilistic classification (`choice`) |
+| **Execution** | Feeds directly into Risk Manager | Filters signals before Risk Manager |
+| **Profitability** | Backtested on historical data | Evaluated as an advisory layer; not proof of alpha |
+| **Availability** | Offline / Always available | Optional; fails safe to `NO_ACTION` if offline |
+
+### Local Setup & Configuration
+
+Jev is **disabled by default**. To configure and enable Jev:
+
+1. Add your TypeSafe API key to `.env`:
+   ```bash
+   JEV_ENABLED=true
+   JEV_API_KEY=your_typesafe_api_key_here
+   JEV_MODEL=jev-latest
+   JEV_TIMEOUT_SECONDS=5.0
+   JEV_MIN_CONFIDENCE=0.60
+   ```
+   > **Security Note:** `JEV_API_KEY` is loaded server-side only. It is never sent to frontend clients and is never serialized into experiment result artifacts.
+
+2. Verify operational status:
+   ```bash
+   python -m backend.app.cli jev-status
+   ```
+
+3. Evaluate a market context:
+   ```bash
+   python -m backend.app.cli jev-evaluate '{"symbol": "AAPL", "price": 175.50, "rsi_14": 42.0, "timestamp": "2023-05-01"}'
+   ```
 
 ---
 
@@ -411,6 +538,7 @@ python -m backend.app.cli sweep --config-template config.json --param-grid '{"st
  - [x] **Phase 7:** Strategy expansion (Momentum, Mean Reversion, Pairs Trading), Risk Sizing, Stop-Loss, Walk-Forward backtester, and Strategy Comparator (51 passing tests).
  - [x] **Phase 7.1:** True Multi-Asset Pairs Trading & Realistic Stop-Loss Execution (70 passing tests).
  - [x] **Phase 8:** Quantitative Research Platform & Reproducibility (94 passing tests).
+ - [x] **Phase 8.1:** Jev AI Decision Layer (TypeSafe SystemOne, 112 passing tests).
  - [ ] **Phase 9:** Machine Learning feature pipeline & XGBoost predictive model.
  - [ ] **Phase 10:** Real-time paper-trading session daemon.
  - [ ] **Phase 11:** React + TypeScript interactive analytics dashboard.

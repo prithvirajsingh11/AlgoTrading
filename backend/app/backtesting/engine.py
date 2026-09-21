@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Optional, List, Dict, Any, TYPE_CHECKING
 import pandas as pd
+import numpy as np
 from backend.app.data.loader import OHLCVBar, CSVDataLoader
 from backend.app.data.cleaner import clean_and_validate
 
@@ -43,10 +44,33 @@ class BacktestEngine:
         position_sizer: Optional[BasePositionSizer] = None,
         risk_manager: Optional[RiskManager] = None,
         broker: Optional[SimulatedBroker] = None,
+        decision_provider: Optional[Any] = None,
+        decision_frequency: str = "on_signal",
+        decision_frequency_n: int = 5,
+        config_hash: str = "",
     ):
         self.symbol = symbol
         self.initial_capital = initial_capital
         self.allow_shorting = allow_shorting
+        self.decision_provider = decision_provider
+        self.decision_frequency = decision_frequency
+        self.decision_frequency_n = decision_frequency_n
+        self.config_hash = config_hash
+        self.ai_decision_stats: Dict[str, Any] = {
+            "enabled": decision_provider is not None,
+            "total_calls": 0,
+            "successful_calls": 0,
+            "failed_calls": 0,
+            "buy_count": 0,
+            "sell_count": 0,
+            "hold_count": 0,
+            "no_action_count": 0,
+            "latencies": [],
+            "confidences": [],
+            "cached_calls": 0,
+            "live_calls": 0,
+            "errors": [],
+        }
         self.broker = broker or SimulatedBroker(
             commission_fixed=commission_fixed,
             commission_percent=commission_percent,
@@ -210,6 +234,58 @@ class BacktestEngine:
             else:
                 signals = []
 
+            # D.1 Optional Jev Decision Layer evaluation & filtering
+            if self.decision_provider is not None:
+                from backend.app.ai.jev_context import build_market_context
+                from backend.app.ai.jev_schema import JevDecisionType
+
+                should_evaluate = False
+                if self.decision_frequency == "every_bar":
+                    should_evaluate = True
+                elif self.decision_frequency == "every_n_bars":
+                    should_evaluate = (i % self.decision_frequency_n == 0)
+                else:  # "on_signal"
+                    actionable = [s for s in signals if s.signal_type in (SignalType.BUY, SignalType.SELL)]
+                    should_evaluate = len(actionable) > 0
+
+                if should_evaluate:
+                    eval_sym = self.symbol if not is_multi else symbols[0]
+                    context = build_market_context(
+                        symbol=eval_sym,
+                        historical_slice=historical_slice,
+                        portfolio=self.portfolio,
+                        signals=signals,
+                    )
+                    decision = self.decision_provider.evaluate(context, config_hash=self.config_hash or "")
+
+                    # Record stats
+                    self.ai_decision_stats["total_calls"] += 1
+                    self.ai_decision_stats["latencies"].append(decision.latency_ms)
+                    self.ai_decision_stats["confidences"].append(decision.confidence)
+                    if decision.source == "CACHED_JEV":
+                        self.ai_decision_stats["cached_calls"] += 1
+                    else:
+                        self.ai_decision_stats["live_calls"] += 1
+
+                    if decision.error:
+                        self.ai_decision_stats["failed_calls"] += 1
+                        self.ai_decision_stats["errors"].append(decision.error)
+                    else:
+                        self.ai_decision_stats["successful_calls"] += 1
+
+                    if decision.decision == JevDecisionType.BUY:
+                        self.ai_decision_stats["buy_count"] += 1
+                        signals = [s for s in signals if s.signal_type == SignalType.BUY]
+                    elif decision.decision == JevDecisionType.SELL:
+                        self.ai_decision_stats["sell_count"] += 1
+                        signals = [s for s in signals if s.signal_type == SignalType.SELL]
+                    elif decision.decision == JevDecisionType.HOLD:
+                        self.ai_decision_stats["hold_count"] += 1
+                        signals = []
+                    else:  # NO_ACTION
+                        self.ai_decision_stats["no_action_count"] += 1
+                        signals = []
+
             # E. Order generation and execution
             for signal in signals:
                 target_sym = signal.symbol
@@ -331,6 +407,16 @@ class BacktestEngine:
             trades=self.trades,
             initial_capital=self.initial_capital,
         )
+
+        # 4. Compile AI decision summary stats if active
+        if self.decision_provider is not None:
+            lats = self.ai_decision_stats["latencies"]
+            confs = self.ai_decision_stats["confidences"]
+            self.ai_decision_stats["average_latency_ms"] = round(float(np.mean(lats)), 2) if lats else 0.0
+            self.ai_decision_stats["p50_latency_ms"] = round(float(np.percentile(lats, 50)), 2) if lats else 0.0
+            self.ai_decision_stats["p95_latency_ms"] = round(float(np.percentile(lats, 95)), 2) if lats else 0.0
+            self.ai_decision_stats["average_confidence"] = round(float(np.mean(confs)), 4) if confs else 0.0
+            self.ai_decision_stats["model"] = getattr(self.decision_provider, "model", "jev-latest")
 
         return BacktestResult(
             strategy_name=strat.name,

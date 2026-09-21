@@ -11,6 +11,7 @@ from backend.app.api.routes_portfolio import router as portfolio_router
 from backend.app.api.routes_paper import router as paper_router
 from backend.app.api.routes_datasets import router as datasets_router
 from backend.app.api.routes_experiments import router as experiments_router
+from backend.app.api.routes_ai import router as ai_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -44,6 +45,7 @@ app.include_router(portfolio_router, prefix=api_v1_prefix)
 app.include_router(paper_router, prefix=api_v1_prefix)
 app.include_router(datasets_router, prefix=api_v1_prefix)
 app.include_router(experiments_router, prefix=api_v1_prefix)
+app.include_router(ai_router, prefix=api_v1_prefix)
 
 
 @app.get("/health", tags=["Health"])

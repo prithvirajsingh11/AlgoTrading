@@ -37,7 +37,7 @@ class EquityPoint:
 
     def to_dict(self) -> dict:
         return {
-            "timestamp": self.timestamp.isoformat(),
+            "timestamp": self.timestamp.isoformat() if hasattr(self.timestamp, "isoformat") else str(self.timestamp),
             "cash": round(self.cash, 2),
             "positions_value": round(self.positions_value, 2),
             "total_equity": round(self.total_equity, 2),

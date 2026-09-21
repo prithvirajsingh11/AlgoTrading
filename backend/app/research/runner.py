@@ -50,9 +50,11 @@ class ExperimentRunner:
         self,
         dataset_manager: Optional[DatasetManager] = None,
         storage: Optional[BaseExperimentStorage] = None,
+        decision_provider: Optional[Any] = None,
     ):
         self.dataset_manager = dataset_manager or DatasetManager()
         self.storage = storage or SQLiteExperimentStorage()
+        self.decision_provider = decision_provider
 
     def _resolve_position_sizer(self, config: ExperimentConfig) -> BasePositionSizer:
         method = config.risk.position_sizing_method.lower()
@@ -147,6 +149,7 @@ class ExperimentRunner:
         # 5. Execution mode: standard vs walk_forward
         mode = config.backtesting.mode.lower()
         walk_forward_payload: Optional[Dict[str, Any]] = None
+        ai_decision_stats: Optional[Dict[str, Any]] = None
 
         if mode == "walk_forward":
             wf_params = config.backtesting.walk_forward_params or {}
@@ -198,6 +201,31 @@ class ExperimentRunner:
             )
             position_sizer = self._resolve_position_sizer(config)
 
+            # Resolve decision provider
+            active_provider = self.decision_provider
+            decision_freq = "on_signal"
+            decision_freq_n = 5
+            if config.jev and config.jev.enabled:
+                decision_freq = config.jev.decision_frequency
+                decision_freq_n = config.jev.frequency_n
+                if active_provider is None:
+                    from backend.app.ai.jev_client import JevClient
+                    from backend.app.ai.jev_decision import JevDecisionProvider
+                    from backend.app.core.config import settings
+
+                    j_client = JevClient(
+                        api_key=settings.jev_api_key,
+                        model=config.jev.model,
+                        api_url=settings.jev_api_url,
+                        timeout_seconds=config.jev.timeout_seconds,
+                    )
+                    active_provider = JevDecisionProvider(
+                        client=j_client,
+                        min_confidence=config.jev.min_confidence,
+                        cache_enabled=config.jev.cache_enabled,
+                        model=config.jev.model,
+                    )
+
             engine = BacktestEngine(
                 symbol=primary_symbol,
                 initial_capital=config.portfolio.initial_capital,
@@ -210,6 +238,10 @@ class ExperimentRunner:
                 position_sizer=position_sizer,
                 risk_manager=risk_manager,
                 broker=broker,
+                decision_provider=active_provider,
+                decision_frequency=decision_freq,
+                decision_frequency_n=decision_freq_n,
+                config_hash=config.get_hash(),
             )
 
             bt_result = engine.run(data=raw_data, strategy=strategy)
@@ -220,6 +252,7 @@ class ExperimentRunner:
             )
             equity_curve = bt_result.equity_curve
             trade_records = bt_result.trades
+            ai_decision_stats = getattr(engine, "ai_decision_stats", None) if active_provider else None
 
         # 6. Compute Drawdown Curve
         drawdown_curve: List[Dict[str, Any]] = []
@@ -268,6 +301,7 @@ class ExperimentRunner:
             drawdown_curve=drawdown_curve,
             execution_statistics=execution_stats,
             walk_forward_results=walk_forward_payload,
+            ai_decision_stats=ai_decision_stats,
             warnings=warnings,
             created_at=created_at,
             completed_at=datetime.now(timezone.utc).isoformat(),

@@ -53,6 +53,17 @@ class BacktestingConfig:
 
 
 @dataclass
+class JevConfig:
+    enabled: bool = False
+    model: str = "jev-latest"
+    min_confidence: float = 0.60
+    decision_frequency: str = "on_signal"  # "on_signal", "every_bar", "every_n_bars"
+    frequency_n: int = 5
+    cache_enabled: bool = True
+    timeout_seconds: float = 5.0
+
+
+@dataclass
 class ExperimentConfig:
     """Canonical experiment configuration containing full reproducibility specification."""
 
@@ -62,6 +73,7 @@ class ExperimentConfig:
     execution: ExecutionConfig = field(default_factory=ExecutionConfig)
     risk: RiskConfig = field(default_factory=RiskConfig)
     backtesting: BacktestingConfig = field(default_factory=BacktestingConfig)
+    jev: Optional[JevConfig] = None
     seed: int = 42
     description: str = ""
 
@@ -118,6 +130,19 @@ class ExperimentConfig:
             walk_forward_params=b_cfg.get("walk_forward_params"),
         )
 
+        jev = None
+        j_cfg = data.get("jev")
+        if j_cfg is not None:
+            jev = JevConfig(
+                enabled=bool(j_cfg.get("enabled", False)),
+                model=str(j_cfg.get("model", "jev-latest")),
+                min_confidence=float(j_cfg.get("min_confidence", 0.60)),
+                decision_frequency=str(j_cfg.get("decision_frequency", "on_signal")),
+                frequency_n=int(j_cfg.get("frequency_n", 5)),
+                cache_enabled=bool(j_cfg.get("cache_enabled", True)),
+                timeout_seconds=float(j_cfg.get("timeout_seconds", 5.0)),
+            )
+
         return cls(
             dataset=dataset,
             strategy=strategy,
@@ -125,6 +150,7 @@ class ExperimentConfig:
             execution=execution,
             risk=risk,
             backtesting=backtesting,
+            jev=jev,
             seed=int(data.get("seed", 42)),
             description=str(data.get("description", "")),
         )
@@ -162,6 +188,10 @@ def compute_config_hash(config: Union[ExperimentConfig, Dict[str, Any]]) -> str:
         "backtesting": cfg_dict.get("backtesting"),
         "seed": cfg_dict.get("seed", 42),
     }
+
+    # Include jev configuration if provided and enabled (or explicitly specified)
+    if cfg_dict.get("jev") is not None:
+        clean_dict["jev"] = cfg_dict.get("jev")
 
     canonical_json = json.dumps(clean_dict, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
     return hashlib.sha256(canonical_json.encode("utf-8")).hexdigest()

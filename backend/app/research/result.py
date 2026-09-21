@@ -39,6 +39,7 @@ class ExperimentResult:
     drawdown_curve: List[Dict[str, Any]]
     execution_statistics: Dict[str, Any]
     walk_forward_results: Optional[Dict[str, Any]] = None
+    ai_decision_stats: Optional[Dict[str, Any]] = None
     warnings: List[str] = field(default_factory=list)
     created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     completed_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
@@ -56,6 +57,7 @@ class ExperimentResult:
             "drawdown_curve": self.drawdown_curve,
             "execution_statistics": self.execution_statistics,
             "walk_forward_results": self.walk_forward_results,
+            "ai_decision_stats": self.ai_decision_stats,
             "warnings": self.warnings,
             "created_at": self.created_at,
             "completed_at": self.completed_at,
@@ -75,6 +77,7 @@ class ExperimentResult:
             drawdown_curve=list(data.get("drawdown_curve", [])),
             execution_statistics=dict(data.get("execution_statistics", {})),
             walk_forward_results=data.get("walk_forward_results"),
+            ai_decision_stats=data.get("ai_decision_stats"),
             warnings=list(data.get("warnings", [])),
             created_at=str(data.get("created_at", "")),
             completed_at=str(data.get("completed_at", "")),

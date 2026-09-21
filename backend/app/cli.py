@@ -136,6 +136,57 @@ def sweep_command(config_path_str: str, grid_json_str: str) -> int:
     return 0
 
 
+def jev_status_command() -> int:
+    from backend.app.core.config import settings
+
+    is_configured = bool(settings.jev_api_key and settings.jev_api_key.strip())
+    status_str = "READY" if (settings.jev_enabled and is_configured) else ("UNCONFIGURED" if not is_configured else "DISABLED")
+
+    print("=== Jev AI Decision Layer Status ===")
+    print(f"Enabled         : {'YES' if settings.jev_enabled else 'NO'}")
+    print(f"Configured      : {'YES' if is_configured else 'NO (JEV_API_KEY missing)'}")
+    print(f"Model           : {settings.jev_model}")
+    print(f"Provider Status : {status_str}")
+    print(f"Timeout         : {settings.jev_timeout_seconds}s")
+    print(f"Min Confidence  : {settings.jev_min_confidence:.2f}")
+    return 0
+
+
+def jev_evaluate_command(context_arg: str) -> int:
+    from backend.app.api.routes_ai import get_decision_provider
+
+    context_path = Path(context_arg)
+    if context_path.exists():
+        raw_text = context_path.read_text(encoding="utf-8")
+    else:
+        raw_text = context_arg
+
+    try:
+        context_data = json.loads(raw_text)
+    except Exception as e:
+        print(f"Error parsing market context JSON: {e}")
+        return 1
+
+    provider = get_decision_provider()
+    decision = provider.evaluate(context_data)
+
+    print("=== Jev Decision Evaluation ===")
+    print(f"Decision        : {decision.decision.value}")
+    print(f"Confidence      : {decision.confidence:.4f}")
+    print(f"Model           : {decision.model}")
+    print(f"Source          : {decision.source}")
+    print(f"Latency         : {decision.latency_ms:.1f}ms")
+    print(f"Context Hash    : {decision.context_hash[:16]}...")
+    print("Probabilities   :")
+    for action, prob in decision.probabilities.items():
+        print(f"  * {action:<6} : {prob:.4f}")
+
+    if decision.error:
+        print(f"Error           : {decision.error}")
+
+    return 0
+
+
 def main(args: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="AlgoTrade Research Platform CLI")
     subparsers = parser.add_subparsers(dest="command", help="Available subcommands")
@@ -156,6 +207,13 @@ def main(args: Optional[list[str]] = None) -> int:
     swp_parser.add_argument("config", type=str, help="Path to base experiment JSON configuration")
     swp_parser.add_argument("--grid", type=str, required=True, help="JSON string defining parameter grid")
 
+    # jev-status
+    subparsers.add_parser("jev-status", help="Display Jev AI decision engine status")
+
+    # jev-evaluate
+    eval_parser = subparsers.add_parser("jev-evaluate", help="Evaluate market context through Jev")
+    eval_parser.add_argument("context", type=str, help="JSON string or file path containing market context")
+
     parsed = parser.parse_args(args)
 
     if parsed.command == "run-experiment":
@@ -166,6 +224,10 @@ def main(args: Optional[list[str]] = None) -> int:
         return validate_dataset_command(parsed.dataset_id)
     elif parsed.command == "sweep":
         return sweep_command(parsed.config, parsed.grid)
+    elif parsed.command == "jev-status":
+        return jev_status_command()
+    elif parsed.command == "jev-evaluate":
+        return jev_evaluate_command(parsed.context)
     else:
         parser.print_help()
         return 0
