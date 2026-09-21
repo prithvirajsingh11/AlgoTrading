@@ -8,6 +8,7 @@ import uuid
 class OrderType(str, Enum):
     MARKET = "MARKET"
     LIMIT = "LIMIT"
+    STOP_LOSS = "STOP_LOSS"
 
 
 class OrderSide(str, Enum):
@@ -34,6 +35,7 @@ class SignalEvent:
     symbol: str
     signal_type: SignalType
     strength: float = 1.0
+    stop_loss_price: Optional[float] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
@@ -45,6 +47,7 @@ class Order:
     quantity: float
     created_at: datetime
     limit_price: Optional[float] = None
+    stop_price: Optional[float] = None
     order_id: str = field(default_factory=lambda: str(uuid.uuid4())[:8])
     status: OrderStatus = OrderStatus.PENDING
     filled_at: Optional[datetime] = None
@@ -57,6 +60,8 @@ class Order:
             raise ValueError(f"Order quantity must be positive, got {self.quantity}")
         if self.order_type == OrderType.LIMIT and self.limit_price is None:
             raise ValueError("Limit order requires limit_price")
+        if self.order_type == OrderType.STOP_LOSS and self.stop_price is None:
+            raise ValueError("Stop loss order requires stop_price")
 
 
 @dataclass(frozen=True)

@@ -135,5 +135,59 @@ class SimulatedBroker:
                 if not filled:
                     unfilled_orders.append(order)
 
+            elif order.order_type == OrderType.STOP_LOSS:
+                filled = False
+                if order.side == OrderSide.SELL:
+                    if bar.low <= order.stop_price:  # Stop-loss sell trigger
+                        fill_base = min(bar.open, order.stop_price)
+                        slip_unit = self.calculate_slippage(fill_base, order.side)
+                        fill_price = fill_base + slip_unit
+                        traded_value = fill_price * order.quantity
+                        commission = self.calculate_commission(traded_value)
+
+                        order.status = OrderStatus.FILLED
+                        order.filled_at = bar.timestamp
+                        order.filled_price = fill_price
+                        order.commission = commission
+                        order.slippage = abs(slip_unit * order.quantity)
+
+                        filled_results.append(
+                            ExecutionResult(
+                                order=order,
+                                fill_price=fill_price,
+                                commission=commission,
+                                slippage=order.slippage,
+                                timestamp=bar.timestamp,
+                            )
+                        )
+                        filled = True
+                elif order.side == OrderSide.BUY:
+                    if bar.high >= order.stop_price:  # Stop-loss buy trigger
+                        fill_base = max(bar.open, order.stop_price)
+                        slip_unit = self.calculate_slippage(fill_base, order.side)
+                        fill_price = fill_base + slip_unit
+                        traded_value = fill_price * order.quantity
+                        commission = self.calculate_commission(traded_value)
+
+                        order.status = OrderStatus.FILLED
+                        order.filled_at = bar.timestamp
+                        order.filled_price = fill_price
+                        order.commission = commission
+                        order.slippage = abs(slip_unit * order.quantity)
+
+                        filled_results.append(
+                            ExecutionResult(
+                                order=order,
+                                fill_price=fill_price,
+                                commission=commission,
+                                slippage=order.slippage,
+                                timestamp=bar.timestamp,
+                            )
+                        )
+                        filled = True
+
+                if not filled:
+                    unfilled_orders.append(order)
+
         self.pending_orders = unfilled_orders
         return filled_results

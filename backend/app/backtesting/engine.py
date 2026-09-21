@@ -70,25 +70,45 @@ class BacktestEngine:
         for i, bar in enumerate(bars):
             current_prices = {self.symbol: bar.close}
 
-            # A. Process any pending limit orders from prior bars
+            # A. Process any pending limit or stop orders from prior bars
             fills = self.broker.process_pending_orders(bar)
             for fill in fills:
                 self.portfolio.update_fill(fill)
 
-            # B. Strict slice of historical data up to and including current bar
+            # B. Check active position stop-losses via RiskManager
+            stop_orders = self.risk_manager.check_position_stops(
+                portfolio=self.portfolio,
+                current_prices=current_prices,
+                timestamp=bar.timestamp,
+            )
+            for stop_order in stop_orders:
+                stop_fill = self.broker.execute_market_order(stop_order, bar)
+                self.portfolio.update_fill(stop_fill)
+
+            # C. Strict slice of historical data up to and including current bar
             historical_slice = cleaned_df.iloc[: i + 1]
 
-            # C. Strategy evaluation
+            # D. Strategy evaluation
             signal: Optional[SignalEvent] = strategy.generate_signal(bar, historical_slice)
 
-            # D. Handle generated signals
+            # E. Handle generated signals
             if signal is not None:
                 if signal.signal_type == SignalType.BUY:
-                    qty = self.position_sizer.calculate_quantity(
-                        symbol=self.symbol,
-                        price=bar.close,
-                        portfolio=self.portfolio,
-                    )
+                    stop_price = signal.stop_loss_price or signal.metadata.get("stop_loss")
+                    if hasattr(self.position_sizer, "calculate_quantity") and "stop_loss_price" in self.position_sizer.calculate_quantity.__code__.co_varnames:
+                        qty = self.position_sizer.calculate_quantity(
+                            symbol=self.symbol,
+                            price=bar.close,
+                            portfolio=self.portfolio,
+                            stop_loss_price=stop_price,
+                        )
+                    else:
+                        qty = self.position_sizer.calculate_quantity(
+                            symbol=self.symbol,
+                            price=bar.close,
+                            portfolio=self.portfolio,
+                        )
+
                     if qty > 0:
                         order = Order(
                             symbol=self.symbol,
@@ -105,6 +125,8 @@ class BacktestEngine:
                         if is_valid:
                             fill = self.broker.execute_market_order(order, bar)
                             self.portfolio.update_fill(fill)
+                            if stop_price is not None:
+                                self.risk_manager.set_position_stop(self.symbol, float(stop_price))
 
                 elif signal.signal_type == SignalType.SELL:
                     pos = self.portfolio.get_position(self.symbol)
@@ -124,6 +146,7 @@ class BacktestEngine:
                         if is_valid:
                             fill = self.broker.execute_market_order(order, bar)
                             self.portfolio.update_fill(fill)
+                            self.risk_manager.clear_position_stop(self.symbol)
 
             # E. Mark-to-market at bar close
             self.portfolio.mark_to_market(bar.timestamp, current_prices)

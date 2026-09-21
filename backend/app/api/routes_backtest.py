@@ -4,7 +4,12 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from backend.app.core.config import settings
 from backend.app.data.loader import CSVDataLoader
-from backend.app.strategies.momentum import MovingAverageCrossStrategy
+from backend.app.strategies.momentum import (
+    MovingAverageCrossStrategy,
+    TimeSeriesMomentumStrategy,
+)
+from backend.app.strategies.mean_reversion import MeanReversionStrategy
+from backend.app.strategies.pairs_trading import PairsTradingStrategy
 from backend.app.backtesting.engine import BacktestEngine
 from backend.app.backtesting.broker import SimulatedBroker
 from backend.app.risk.position_sizing import PercentEquitySizer
@@ -49,19 +54,23 @@ def run_backtest(req: BacktestRunRequest):
         raise HTTPException(status_code=400, detail=f"Failed loading dataset: {str(e)}")
 
     # 2. Instantiate strategy
-    if req.strategy == "MovingAverageCross":
-        try:
-            strategy = MovingAverageCrossStrategy(
-                symbol=req.symbol.upper(),
-                parameters=req.parameters,
+    strat_name = req.strategy
+    try:
+        if strat_name == "MovingAverageCross":
+            strategy = MovingAverageCrossStrategy(symbol=req.symbol.upper(), parameters=req.parameters)
+        elif strat_name == "TimeSeriesMomentum":
+            strategy = TimeSeriesMomentumStrategy(symbol=req.symbol.upper(), parameters=req.parameters)
+        elif strat_name == "MeanReversion":
+            strategy = MeanReversionStrategy(symbol=req.symbol.upper(), parameters=req.parameters)
+        elif strat_name == "PairsTrading":
+            strategy = PairsTradingStrategy(symbol=req.symbol.upper(), parameters=req.parameters)
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Strategy '{req.strategy}' is not recognized or supported yet.",
             )
-        except ValueError as e:
-            raise HTTPException(status_code=422, detail=str(e))
-    else:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Strategy '{req.strategy}' is not active or supported yet.",
-        )
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
     # 3. Setup risk manager, broker, and position sizer
     broker = SimulatedBroker(

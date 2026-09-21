@@ -6,39 +6,26 @@ A computer science portfolio project implementing a quantitative trading researc
 
 ---
 
-## Key Features (Phases 1–6)
+## Key Features (Phases 1–7)
 
 - **Event-Driven Backtest Engine:** Chronological bar-by-bar execution model with zero future lookahead bias.
-- **Realistic Execution Simulation:**
-  - Configurable slippage (basis points model).
-  - Configurable transaction fees (fixed ticket fee + percentage of traded volume).
-  - Market and limit order support.
+- **Production-Quality Trading Strategies:**
+  - `MovingAverageCrossStrategy`: Dual fast/slow moving average trend following.
+  - `TimeSeriesMomentumStrategy`: Configurable lookback return momentum and entry/exit thresholds.
+  - `MeanReversionStrategy`: Rolling mean, standard deviation, and dynamic z-score ($z = \frac{Close - \mu}{\sigma}$).
+  - `PairsTradingStrategy`: Statistical arbitrage with cointegrated spread, dynamic OLS hedge ratio $\beta = \frac{Cov(P_1, P_2)}{Var(P_2)}$, and spread z-scores.
+- **Advanced Position Sizing & Stop-Loss Protection:**
+  - `RiskBasedPositionSizer`: Formulated by account equity, stop-loss price, and risk percentage ($\lfloor \frac{\text{Equity} \times \text{Risk\%}}{|\text{Entry} - \text{Stop}|} \rfloor$).
+  - `OrderType.STOP_LOSS` in simulated broker and proactive position-level stop monitoring in `RiskManager`.
+- **Walk-Forward Out-Of-Sample Backtesting:**
+  - Strictly chronological sliding windows ($Train \to Test \to Shift$) with zero data leakage or lookahead.
+  - Generates per-window out-of-sample metrics and combined out-of-sample performance curves.
+- **Multi-Strategy Comparison Service:**
+  - Benchmarks multiple strategies against the same dataset across 9 standardized metrics.
 - **Complete Financial Accounting:**
-  - Real-time cash balance tracking.
-  - Position tracking with weighted average entry prices.
-  - Realized and unrealized P&L reconciliation.
-  - Mark-to-market portfolio equity history.
-- **Risk Management & Position Sizing:**
-  - Fixed-share and percentage-of-equity position sizers.
-  - Pre-trade cash sufficiency verification.
-  - Position concentration limits.
-  - Drawdown circuit breaker halting execution on critical portfolio drops.
-- **Quantitative Performance Metrics:**
-  - Total Return & Annualized Return (CAGR)
-  - Annualized Volatility
-  - Sharpe Ratio & Sortino Ratio
-  - Maximum Drawdown (peak-to-trough series)
-  - Win Rate, Number of Trades, & Profit Factor
-- **Modular Historical Data Pipeline:**
-  - CSV data loader with schema normalization.
-  - Strict data validation (duplicate timestamps, chronological ordering, missing values, $High \ge \max(Open, Close)$, $Low \le \min(Open, Close)$, positive prices).
-- **Extensible Strategy Layer:**
-  - Abstract base strategy interface.
-  - Configurable Moving Average Crossover (`MovingAverageCrossStrategy`).
-- **RESTful API:**
-  - FastAPI endpoints for market data, strategy inspection, and backtesting runs.
+  - Real-time cash balance tracking, positions with weighted average entry prices, realized/unrealized P&L reconciliation, mark-to-market portfolio equity.
 - **Automated Verification:**
-  - 35 unit and integration tests covering all critical components.
+  - 51 unit and integration tests covering all critical components.
 
 ---
 
@@ -252,12 +239,13 @@ curl -X POST "http://127.0.0.1:8000/api/v1/backtest/run" \
 
 ## Roadmap
 
-- [x] **Phase 1:** Project foundation and modular architecture.
-- [x] **Phase 2:** Historical market data loader, cleaning, and validation.
-- [x] **Phase 3:** Event-driven backtesting engine, simulated broker, and portfolio accounting.
-- [x] **Phase 4:** Moving Average Crossover momentum strategy.
-- [x] **Phase 5:** Quantitative performance metrics (Sharpe, Sortino, Max Drawdown).
-- [x] **Phase 6:** Automated test suite (35 passing tests).
-- [ ] **Phase 7:** Machine Learning feature pipeline & XGBoost predictive model.
-- [ ] **Phase 8:** Real-time paper-trading session daemon.
-- [ ] **Phase 9:** React + TypeScript interactive analytics dashboard.
+ - [x] **Phase 1:** Project foundation and modular architecture.
+ - [x] **Phase 2:** Historical market data loader, cleaning, and validation.
+ - [x] **Phase 3:** Event-driven backtesting engine, simulated broker, and portfolio accounting.
+ - [x] **Phase 4:** Moving Average Crossover momentum strategy.
+ - [x] **Phase 5:** Quantitative performance metrics (Sharpe, Sortino, Max Drawdown).
+ - [x] **Phase 6:** Automated test suite (35 passing tests).
+ - [x] **Phase 7:** Strategy expansion (Momentum, Mean Reversion, Pairs Trading), Risk Sizing, Stop-Loss, Walk-Forward backtester, and Strategy Comparator (51 passing tests).
+ - [ ] **Phase 8:** Machine Learning feature pipeline & XGBoost predictive model.
+ - [ ] **Phase 9:** Real-time paper-trading session daemon.
+ - [ ] **Phase 10:** React + TypeScript interactive analytics dashboard.

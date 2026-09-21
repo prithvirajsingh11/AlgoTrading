@@ -11,7 +11,6 @@ from backend.app.backtesting.orders import (
 )
 from backend.app.backtesting.broker import SimulatedBroker
 from backend.app.backtesting.portfolio import Portfolio, Position, EquityPoint
-from backend.app.backtesting.engine import BacktestEngine
 
 __all__ = [
     "Order",
@@ -26,5 +25,4 @@ __all__ = [
     "Portfolio",
     "Position",
     "EquityPoint",
-    "BacktestEngine",
 ]
