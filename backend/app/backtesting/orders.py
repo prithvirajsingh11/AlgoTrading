@@ -73,6 +73,10 @@ class ExecutionResult:
     slippage: float
     timestamp: datetime
 
+    @property
+    def quantity(self) -> float:
+        return self.order.quantity
+
 
 @dataclass
 class TradeRecord:

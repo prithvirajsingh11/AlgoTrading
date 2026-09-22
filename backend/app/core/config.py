@@ -50,5 +50,18 @@ class Settings(BaseSettings):
     jev_min_confidence: float = 0.60
     jev_api_url: str = "https://api.typesafe.ai/v1/systemone"
 
+    # Real-Time Market Data Provider Configuration
+    live_data_provider: str = "mock"
+    live_data_api_url: Optional[str] = None
+    live_data_api_key: Optional[str] = None
+    live_data_api_secret: Optional[str] = None
+    live_data_symbols: List[str] = ["AAPL"]
+    live_data_max_data_age_seconds: float = 15.0
+    live_data_reconnect_max_attempts: int = 5
+    live_data_reconnect_backoff_factor: float = 1.5
+    live_data_heartbeat_interval: float = 5.0
+    live_data_max_desync_seconds: float = 5.0
+
 
 settings = Settings()
+

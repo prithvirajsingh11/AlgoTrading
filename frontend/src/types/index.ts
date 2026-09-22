@@ -361,6 +361,69 @@ export interface PaperTradingSessionSummary {
   current_bar_index: number;
   total_bars: number;
   simulation_timestamp?: string | null;
+  mode?: "HISTORICAL_REPLAY" | "REAL_TIME";
+  data_provider_type?: string;
+  safety_state?: "SIGNALS_ENABLED" | "SIGNALS_PAUSED";
+  max_data_age_seconds?: number;
+  last_data_timestamp?: string | null;
+  latency_ms?: number | null;
+}
+
+export interface MarketProviderInfo {
+  id: string;
+  name: string;
+  type: string;
+  is_live: boolean;
+  description: string;
+  requires_api_key: boolean;
+  status: string;
+}
+
+export interface MarketConnectionStatus {
+  provider: string;
+  state: "DISCONNECTED" | "CONNECTING" | "CONNECTED" | "RECONNECTING" | "ERROR";
+  connected: boolean;
+  subscribed_symbols: string[];
+  reconnect_count: number;
+  last_message_at: string | null;
+  last_heartbeat_at: string | null;
+  latency_ms: number | null;
+  last_error: string | null;
+  safety_state?: "SIGNALS_ENABLED" | "SIGNALS_PAUSED";
+  session_id?: string;
+}
+
+export interface ProviderStatusEvent {
+  timestamp: string;
+  event_type: "PROVIDER_STATUS";
+  session_id: string;
+  provider: string;
+  status: string;
+  connected: boolean;
+  reconnect_count: number;
+  latency_ms?: number | null;
+  is_stale: boolean;
+  safety_state: "SIGNALS_ENABLED" | "SIGNALS_PAUSED";
+  last_heartbeat?: string | null;
+  error_message?: string | null;
+}
+
+export interface MarketUpdateEvent {
+  timestamp: string;
+  event_type: "MARKET_UPDATE";
+  session_id: string;
+  symbol: string;
+  open?: number | null;
+  high?: number | null;
+  low?: number | null;
+  close: number;
+  volume?: number | null;
+  bid?: number | null;
+  ask?: number | null;
+  mid?: number | null;
+  last_price?: number | null;
+  latency_ms?: number | null;
+  is_stale?: boolean;
 }
 
 export interface PaperOrderRecord {
@@ -425,6 +488,12 @@ export interface CreatePaperSessionPayload {
   strategy: string;
   strategy_params?: Record<string, any>;
   provider?: string;
+  mode?: "HISTORICAL_REPLAY" | "REAL_TIME";
+  data_provider?: string;
+  data_provider_type?: string;
+  live_provider?: string;
+  max_data_age_seconds?: number;
+  max_desync_seconds?: number;
   initial_capital?: number;
   speed?: string;
   allow_shorting?: boolean;

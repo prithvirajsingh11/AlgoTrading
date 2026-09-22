@@ -20,6 +20,12 @@ class CreateSessionRequest(BaseModel):
     strategy: str = "TimeSeriesMomentum"
     strategy_params: Dict[str, Any] = Field(default_factory=dict)
     provider: str = "rule_based"
+    mode: str = "HISTORICAL_REPLAY"
+    data_provider: str = "HISTORICAL"
+    data_provider_type: Optional[str] = None
+    live_provider: Optional[str] = None
+    max_data_age_seconds: float = 15.0
+    max_desync_seconds: float = 5.0
     initial_capital: float = 100_000.0
     speed: str = "1x"
     allow_shorting: bool = False

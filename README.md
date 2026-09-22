@@ -6,7 +6,7 @@
 [![React 18](https://img.shields.io/badge/React-18.3+-61DAFB.svg)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6+-3178C6.svg)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-5.4+-646CFF.svg)](https://vitejs.dev/)
-[![Tests](https://img.shields.io/badge/tests-157%20passed%20%7C%200%20failures-brightgreen.svg)](backend/tests)
+[![Tests](https://img.shields.io/badge/tests-170%20passed%20%7C%200%20failures-brightgreen.svg)](backend/tests)
 [![Code Splitting](https://img.shields.io/badge/bundle-code--split%20%28171%20KB%20core%29-emerald.svg)](frontend)
 
 **AlgoTrade** is an institutional-grade, full-stack quantitative research, event-driven backtesting, and paper-trading platform built from the ground up to showcase advanced computer science and financial engineering principles.
@@ -25,7 +25,7 @@
 | **Walk-Forward Analysis** | Non-overlapping sliding windows ($Train \to Test \to Shift$). | Quarantines out-of-sample periods to prevent overfitting and data leakage; aggregates out-of-sample equity curves. |
 | **Machine Learning Pipeline** | Supervised XGBoost binary classification predicting multi-horizon returns. | Purged time-series cross-validation, feature schema hash verification (SHA-256), and cryptographic artifact serialization. |
 | **Advisory AI Decision Layer** | Modular Jev AI integration via TypeSafe SystemOne structured queries. | Zero-lookahead quantitative context builder, SHA-256 cache, automatic fail-safe fallback to deterministic strategy rules. |
-| **Real-Time Paper Trading** | Historical replay simulation engine with discrete-speed event loop (0.5x to MAX). | SQLite event ledger, WebSocket state broadcast, sub-millisecond stepping, and server restart crash recovery (`RUNNING` $\to$ `PAUSED`). |
+| **Real-Time Paper Trading & Live Feeds** | Vendor-agnostic market data streaming with signal safety circuit breaker. | Multi-asset timestamp synchronizer (`max_desync_seconds`), O(1) bounded feature engine (`StreamingFeatureEngine`), strict safety state machine (`SIGNALS_ENABLED` $\leftrightarrow$ `SIGNALS_PAUSED`), zero credential leakage. |
 | **Production Engineering** | FastAPI backend with structured JSON logging, correlation IDs, and rate bounds. | Non-root Docker container (`appuser`), automated Docker healthchecks, React 18 error boundaries, and dynamic route code-splitting. |
 
 ---
@@ -107,6 +107,32 @@ Pairs trading and statistical arbitrage require simultaneous evaluation of multi
 - **Resource Exhaustion Safeguards**: Parameter grid sweeps are bounded by `settings.max_sweep_combinations` (default 1,000) and concurrent paper sessions are bounded by `settings.max_paper_sessions` (default 20).
 - **Container Security**: Backend `Dockerfile` drops root privileges to run as unprivileged `appuser`, including automated non-network `HEALTHCHECK` probes.
 - **Frontend Code Splitting**: Eager page loads are refactored into `React.lazy()` dynamic imports wrapped in `<Suspense>` and a institutional-styled `<ErrorBoundary>`, shrinking the initial JavaScript payload to 171 KB.
+
+---
+
+## Real-Time Market Data & Live Paper Trading Pipeline
+
+AlgoTrade features an institutional real-time market data streaming and paper-trading subsystem with strict safety invariants, vendor abstraction, and zero real-money path:
+
+### 1. Vendor-Agnostic Provider Architecture
+- **`BaseProviderAdapter` Interface**: Standardized async interface supporting lifecycle hooks (`connect`, `disconnect`, `subscribe`, `unsubscribe`, `poll`).
+- **`InMemoryStreamingAdapter`**: High-frequency offline/testing adapter generating realistic geometric random-walk ticks and quotes with controllable volatility, spreads, and latency.
+- **`GenericWebSocketAdapter`**: Production-ready WebSocket streaming adapter with auto-reconnect backoff (1s to 30s), heartbeat ping/pong, and message dispatch.
+- **Normalized Feed Schema**: Emits `MarketSnapshot` events with tick-level quote data (`bid`, `ask`, `@property mid`, `last_price`) and network latency telemetry (`received_at`, `latency_ms`).
+
+### 2. Temporal Synchronization & Streaming Features
+- **`SnapshotSynchronizer`**: Enforces multi-asset temporal alignment. If symbol timestamps diverge beyond `max_desync_seconds` (default 5.0s), the snapshot is quarantined to prevent cross-asset arbitrage race conditions.
+- **`StreamingFeatureEngine`**: Memory-bounded $O(1)$ incremental feature engine (bounded ring buffers / `collections.deque`). Calculates technical indicators (SMA, EMA, Returns, Realized Volatility) incrementally with guaranteed zero lookahead bias.
+
+### 3. Signal Safety State Machine
+- **State Transition Matrix**:
+  - `CONNECTED` + fresh data ($t_{\text{now}} - t_{\text{data}} \le \text{max\_data\_age}$) $\longrightarrow$ `SIGNALS_ENABLED` (all strategies execute normally).
+  - `STALE` ($t_{\text{now}} - t_{\text{data}} > \text{max\_data\_age}$), `DISCONNECTED`, or `ERROR` $\longrightarrow$ `SIGNALS_PAUSED` (new market/entry orders strictly rejected).
+- **Asymmetric Protection Invariant**: Existing stop-loss, take-profit, and liquidation orders continue to evaluate and fill against live quote ticks even when signals are paused, ensuring capital protection during network outages.
+
+### 4. Zero Credential Exposure & Institutional Security
+- Provider credentials (`api_key`, `api_secret`, auth tokens) are strictly stored in server environment variables or memory.
+- Health status endpoints (`/api/v1/market/status`, `/api/v1/market/providers`), WebSocket broadcasts, and CSV export ledgers emit redacted metadata only (`api_key_configured: bool`), never exposing raw secrets over the wire or in logs.
 
 ---
 
@@ -212,7 +238,7 @@ docker compose up --build
 AlgoTrade is continuously verified using an automated test suite across all subsystems:
 
 ```powershell
-# Run backend test suite (157 unit & integration tests)
+# Run backend test suite (170 unit & integration tests)
 pytest backend/tests -v
 
 # Run frontend tests (Vitest)
@@ -224,7 +250,7 @@ npm run build
 ```
 
 **Verification Results:**
-- **Backend Tests**: 157 passed, 1 skipped (optional live Jev credentials), 0 failures, 0 unexpected warnings.
+- **Backend Tests**: 170 passed, 1 skipped (optional live Jev credentials), 0 failures, 0 unexpected warnings.
 - **Frontend Tests**: 6 passed, 0 failures.
 - **TypeScript Build**: 0 type errors; modular code-split production bundle generated.
 
@@ -242,6 +268,7 @@ AlgoTrading/
 │   │   ├── api/                   # FastAPI route controllers
 │   │   │   ├── routes_backtest.py
 │   │   │   ├── routes_paper.py    # Paper trading + CSV streaming exports
+│   │   │   ├── routes_market.py   # Real-time data provider management & health
 │   │   │   ├── routes_ml.py       # XGBoost training & inference
 │   │   │   └── ...
 │   │   ├── backtesting/           # Core event-driven simulation engine
@@ -260,7 +287,10 @@ AlgoTrading/
 │   │   ├── paper/                 # Real-time paper trading engine
 │   │   │   ├── service.py         # Session orchestration & restart recovery
 │   │   │   ├── storage.py         # SQLite persistence ledger
-│   │   │   └── session.py         # State machine & lifecycle management
+│   │   │   ├── session.py         # State machine & lifecycle management
+│   │   │   ├── realtime.py        # BaseProviderAdapter, InMemory & WebSocket
+│   │   │   ├── sync.py            # Multi-asset SnapshotSynchronizer
+│   │   │   └── streaming_features.py # O(1) bounded feature engine
 │   │   ├── research/              # Quantitative research platform
 │   │   │   ├── runner.py          # Reproducible experiment runner
 │   │   │   ├── sweep.py           # Parameter grid expansion & safeguards
@@ -270,7 +300,7 @@ AlgoTrading/
 │   │   │   ├── mean_reversion.py
 │   │   │   └── pairs_trading.py
 │   │   └── main.py                # ASGI application factory & health probes
-│   ├── tests/                     # 157 pytest automated tests
+│   ├── tests/                     # 170 pytest automated tests
 │   └── Dockerfile                 # Hardened multi-stage container
 ├── frontend/
 │   ├── src/

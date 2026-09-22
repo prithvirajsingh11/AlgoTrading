@@ -7,7 +7,13 @@ from typing import Dict, Any, List, Optional, Set, Tuple
 import logging
 from starlette.websockets import WebSocket, WebSocketState
 
-from backend.app.paper.session import PaperTradingSession, SessionStatus, ReplaySpeed
+from backend.app.paper.session import (
+    PaperTradingSession,
+    SessionStatus,
+    ReplaySpeed,
+    SessionMode,
+    SignalSafetyState,
+)
 from backend.app.paper.events import (
     PaperEvent,
     MarketEvent,
@@ -17,8 +23,20 @@ from backend.app.paper.events import (
     FillExecutionEvent,
     PortfolioUpdateEvent,
     SessionLifecycleEvent,
+    ProviderStatusEvent,
+    MarketUpdateEvent,
 )
-from backend.app.paper.market_data import HistoricalReplayProvider
+from backend.app.paper.market_data import (
+    HistoricalReplayProvider,
+    MarketDataProvider,
+    RealTimeMarketDataProvider,
+    ConnectionState,
+    InMemoryStreamingAdapter,
+    GenericWebSocketAdapter,
+    BaseProviderAdapter,
+)
+from backend.app.paper.sync import SnapshotSynchronizer
+from backend.app.paper.streaming_features import StreamingFeatureEngine
 from backend.app.paper.account import PaperAccount
 from backend.app.paper.orders import PaperOrderRecord, PaperOrderManager
 from backend.app.paper.storage import SQLitePaperStorage
@@ -48,13 +66,15 @@ class PaperTradingService:
 
         self.sessions: Dict[str, PaperTradingSession] = {}
         self.accounts: Dict[str, PaperAccount] = {}
-        self.providers: Dict[str, HistoricalReplayProvider] = {}
+        self.providers: Dict[str, MarketDataProvider] = {}
         self.strategies: Dict[str, BaseStrategy] = {}
         self.brokers: Dict[str, SimulatedBroker] = {}
         self.risk_managers: Dict[str, RiskManager] = {}
         self.position_sizers: Dict[str, BasePositionSizer] = {}
         self.order_managers: Dict[str, PaperOrderManager] = {}
         self.decision_providers: Dict[str, Any] = {}
+        self.synchronizers: Dict[str, SnapshotSynchronizer] = {}
+        self.feature_engines: Dict[str, StreamingFeatureEngine] = {}
 
         self.tasks: Dict[str, asyncio.Task] = {}
         self.subscribers: Dict[str, Set[WebSocket]] = {}
@@ -62,6 +82,7 @@ class PaperTradingService:
 
         # Load existing sessions from storage metadata
         self._hydrate_from_storage()
+
 
     def _hydrate_from_storage(self) -> None:
         try:
@@ -114,16 +135,62 @@ class PaperTradingService:
         })
         risk_cfg["allow_shorting"] = allow_shorting
 
-        # 1. Initialize market data provider
-        dm = dataset_manager or config.get("dataset_manager")
-        data_provider = HistoricalReplayProvider(
-            dataset_id=dataset_id,
-            symbols=symbols,
-            dataset_manager=dm,
-            start_date=config.get("start_date"),
-            end_date=config.get("end_date"),
-        )
-        total_bars = data_provider.get_total_bars()
+        # 1. Initialize market data provider (Historical or Real-Time)
+        session_mode = config.get("mode", SessionMode.HISTORICAL_REPLAY.value)
+        data_provider_type = config.get("data_provider_type", config.get("data_provider", "HISTORICAL"))
+        synchronizer = None
+        feat_engine = None
+
+        if session_mode == SessionMode.REAL_TIME.value or data_provider_type == "LIVE_PROVIDER":
+            session_mode = SessionMode.REAL_TIME.value
+            data_provider_type = "LIVE_PROVIDER"
+
+            live_prov_name = config.get("live_provider", settings.live_data_provider)
+            if live_prov_name in ("mock", "in_memory", "in_memory_mock"):
+                adapter = InMemoryStreamingAdapter(
+                    symbols=symbols,
+                    quote_only=bool(config.get("quote_only", False)),
+                )
+            elif live_prov_name in ("websocket", "generic_ws"):
+                url = config.get("live_api_url") or settings.live_data_api_url
+                if not url:
+                    raise ValueError(f"Real-time market data provider '{live_prov_name}' requires API URL configuration. None supplied.")
+                adapter = GenericWebSocketAdapter(
+                    api_url=url,
+                    api_key=settings.live_data_api_key,
+                    api_secret=settings.live_data_api_secret,
+                    symbols=symbols,
+                )
+            elif "adapter" in config and isinstance(config["adapter"], BaseProviderAdapter):
+                adapter = config["adapter"]
+            else:
+                raise ValueError(f"Real-time market data provider '{live_prov_name}' is not configured or unavailable.")
+
+            data_provider = RealTimeMarketDataProvider(
+                adapter=adapter,
+                symbols=symbols,
+                max_reconnect_attempts=settings.live_data_reconnect_max_attempts,
+                reconnect_backoff_factor=settings.live_data_reconnect_backoff_factor,
+                heartbeat_interval_seconds=settings.live_data_heartbeat_interval,
+            )
+            total_bars = 0
+            synchronizer = SnapshotSynchronizer(
+                symbols=symbols,
+                max_desync_seconds=float(config.get("max_desync_seconds", settings.live_data_max_desync_seconds)),
+            )
+            feat_engine = StreamingFeatureEngine(symbols=symbols)
+        else:
+            session_mode = SessionMode.HISTORICAL_REPLAY.value
+            data_provider_type = "HISTORICAL"
+            dm = dataset_manager or config.get("dataset_manager")
+            data_provider = HistoricalReplayProvider(
+                dataset_id=dataset_id,
+                symbols=symbols,
+                dataset_manager=dm,
+                start_date=config.get("start_date"),
+                end_date=config.get("end_date"),
+            )
+            total_bars = data_provider.get_total_bars()
 
         # 2. Build session record
         session = PaperTradingSession(
@@ -133,6 +200,10 @@ class PaperTradingService:
             strategy=strategy_name,
             strategy_params=strategy_params,
             provider=provider_name,
+            mode=session_mode,
+            data_provider_type=data_provider_type,
+            safety_state=SignalSafetyState.SIGNALS_ENABLED.value,
+            max_data_age_seconds=float(config.get("max_data_age_seconds", settings.live_data_max_data_age_seconds)),
             initial_capital=initial_capital,
             current_equity=initial_capital,
             cash=initial_capital,
@@ -199,11 +270,16 @@ class PaperTradingService:
         self.risk_managers[sid] = risk_mgr
         self.position_sizers[sid] = pos_sizer
         self.order_managers[sid] = order_mgr
+        if synchronizer is not None:
+            self.synchronizers[sid] = synchronizer
+        if feat_engine is not None:
+            self.feature_engines[sid] = feat_engine
         self.recent_events[sid] = []
         self.subscribers[sid] = set()
 
         # Persist initial session state
         self.storage.save_session(session)
+
 
         # Emit initial lifecycle event
         init_evt = SessionLifecycleEvent(
@@ -241,10 +317,13 @@ class PaperTradingService:
         self._record_event(session_id, evt)
         self._schedule_broadcast(session_id, evt)
 
-        # Launch async replay loop if not active
+        # Launch async loop if not active
         existing_task = self.tasks.get(session_id)
         if existing_task is None or existing_task.done():
-            task = self._schedule_task(session_id, self._replay_loop(session_id))
+            if session.mode == SessionMode.REAL_TIME.value:
+                task = self._schedule_task(session_id, self._live_stream_loop(session_id))
+            else:
+                task = self._schedule_task(session_id, self._replay_loop(session_id))
             if task is not None:
                 self.tasks[session_id] = task
 
@@ -259,6 +338,10 @@ class PaperTradingService:
         task = self.tasks.get(session_id)
         if task and not task.done():
             task.cancel()
+
+        prov = self.providers.get(session_id)
+        if prov and hasattr(prov, "stop"):
+            prov.stop()
 
         evt = SessionLifecycleEvent(
             timestamp=datetime.now(timezone.utc).isoformat(),
@@ -285,6 +368,10 @@ class PaperTradingService:
         task = self.tasks.get(session_id)
         if task and not task.done():
             task.cancel()
+
+        prov = self.providers.get(session_id)
+        if prov and hasattr(prov, "stop"):
+            prov.stop()
 
         evt = SessionLifecycleEvent(
             timestamp=datetime.now(timezone.utc).isoformat(),
@@ -400,7 +487,120 @@ class PaperTradingService:
                 s.error_message = str(e)
                 self.storage.save_session(s)
 
-    def _execute_step(self, session_id: str) -> List[PaperEvent]:
+    async def _live_stream_loop(self, session_id: str) -> None:
+        """Background coroutine reading live market stream and updating paper session in real time."""
+        provider = None
+        try:
+            session = self.sessions.get(session_id)
+            provider = self.providers.get(session_id)
+            if not session or not provider:
+                return
+
+            if hasattr(provider, "connect"):
+                await provider.connect()
+
+            if not hasattr(provider, "stream"):
+                logger.error(f"Provider does not support streaming in session {session_id}")
+                return
+
+            async for snapshot in provider.stream():
+                if session.status != SessionStatus.RUNNING:
+                    break
+
+                now = datetime.now(timezone.utc)
+                now_ts = now.timestamp()
+                snap_ts = snapshot.timestamp.timestamp() if hasattr(snapshot.timestamp, "timestamp") else now_ts
+                data_age = max(0.0, now_ts - snap_ts)
+                is_stale = data_age > session.max_data_age_seconds
+
+                prov_status = provider.status if hasattr(provider, "status") else None
+                is_connected = prov_status.connected if prov_status else True
+
+                # Safety State Machine:
+                # CONNECTED + FRESH DATA -> SIGNALS_ENABLED
+                # DISCONNECTED / RECONNECTING / ERROR / STALE -> SIGNALS_PAUSED
+                if is_connected and not is_stale and (not prov_status or prov_status.state == ConnectionState.CONNECTED):
+                    session.safety_state = SignalSafetyState.SIGNALS_ENABLED.value
+                else:
+                    session.safety_state = SignalSafetyState.SIGNALS_PAUSED.value
+
+                session.latency_ms = snapshot.latency_ms or (prov_status.latency_ms if prov_status else None)
+
+                # Broadcast ProviderStatusEvent
+                status_evt = ProviderStatusEvent(
+                    timestamp=now.isoformat(),
+                    event_type="PROVIDER_STATUS",
+                    session_id=session_id,
+                    provider=session.provider,
+                    status=prov_status.state.value if prov_status else "CONNECTED",
+                    connected=is_connected,
+                    reconnect_count=prov_status.reconnect_count if prov_status else 0,
+                    latency_ms=session.latency_ms,
+                    is_stale=is_stale,
+                    safety_state=session.safety_state,
+                    last_heartbeat=prov_status.last_heartbeat_at if prov_status else now.isoformat(),
+                    error_message=prov_status.last_error if prov_status else None,
+                )
+                self._record_event(session_id, status_evt)
+                await self._broadcast(session_id, status_evt)
+
+                # Broadcast MarketUpdateEvent for each bar/quote
+                for sym, bar in snapshot.bars.items():
+                    m_upd = MarketUpdateEvent(
+                        timestamp=snapshot.timestamp.isoformat() if hasattr(snapshot.timestamp, "isoformat") else str(snapshot.timestamp),
+                        event_type="MARKET_UPDATE",
+                        session_id=session_id,
+                        symbol=sym,
+                        open=bar.open,
+                        high=bar.high,
+                        low=bar.low,
+                        close=bar.close,
+                        volume=bar.volume,
+                        bid=bar.bid,
+                        ask=bar.ask,
+                        mid=bar.mid,
+                        last_price=bar.last_price,
+                        latency_ms=snapshot.latency_ms,
+                        is_stale=is_stale,
+                    )
+                    self._record_event(session_id, m_upd)
+                    await self._broadcast(session_id, m_upd)
+
+                # Update streaming feature engine
+                feat_engine = self.feature_engines.get(session_id)
+                if feat_engine is not None:
+                    feat_engine.update_snapshot(snapshot)
+
+                # Update snapshot synchronizer
+                synchronizer = self.synchronizers.get(session_id)
+                is_sync = True
+                if synchronizer is not None:
+                    synchronizer.update_snapshot(snapshot)
+                    if len(session.symbols) > 1:
+                        is_sync = synchronizer.is_synchronized(now)
+
+                # Execute step with safety constraints
+                step_events = self._execute_step(session_id, snapshot=snapshot, is_sync=is_sync)
+                for evt in step_events:
+                    await self._broadcast(session_id, evt)
+
+        except asyncio.CancelledError:
+            logger.info(f"Live stream loop cancelled for session {session_id}")
+        except Exception as e:
+            logger.exception(f"Error in live stream loop for session {session_id}: {e}")
+            if session_id in self.sessions:
+                s = self.sessions[session_id]
+                s.status = SessionStatus.ERROR
+                s.error_message = str(e)
+                self.storage.save_session(s)
+        finally:
+            if provider and hasattr(provider, "disconnect"):
+                try:
+                    await provider.disconnect()
+                except Exception:
+                    pass
+
+    def _execute_step(self, session_id: str, snapshot: Optional[MarketSnapshot] = None, is_sync: bool = True) -> List[PaperEvent]:
         """Core deterministic execution step for a single bar/snapshot."""
         session = self.sessions[session_id]
         provider = self.providers[session_id]
@@ -415,10 +615,16 @@ class PaperTradingService:
         events: List[PaperEvent] = []
 
         # 1. Advance snapshot
-        idx, snapshot, bars = provider.next_snapshot()
-        session.current_bar_index = idx + 1
+        if snapshot is None:
+            idx, snapshot, bars = provider.next_snapshot()
+            session.current_bar_index = idx + 1
+        else:
+            bars = snapshot.bars
+            session.current_bar_index += 1
+
         ts_str = snapshot.timestamp.isoformat() if hasattr(snapshot.timestamp, "isoformat") else str(snapshot.timestamp)
         session.simulation_timestamp = ts_str
+        session.last_data_timestamp = ts_str
 
         current_prices = {sym: bar.close for sym, bar in bars.items()}
         primary_sym = session.symbols[0]
@@ -444,28 +650,29 @@ class PaperTradingService:
 
         # 3. Process pending orders from broker
         for sym in session.symbols:
-            pending_fills = broker.process_pending_orders(bars[sym])
-            for fill in pending_fills:
-                account.update_fill(fill)
-                order_mgr.record_fill(fill)
-                self.storage.save_order(order_mgr.orders[fill.order.order_id])
-                if account.portfolio.get_position(fill.order.symbol).quantity == 0:
-                    risk_mgr.clear_position_stop(fill.order.symbol)
+            if sym in bars:
+                pending_fills = broker.process_pending_orders(bars[sym])
+                for fill in pending_fills:
+                    account.update_fill(fill)
+                    order_mgr.record_fill(fill)
+                    self.storage.save_order(order_mgr.orders[fill.order.order_id])
+                    if account.portfolio.get_position(fill.order.symbol).quantity == 0:
+                        risk_mgr.clear_position_stop(fill.order.symbol)
 
-                fill_evt = FillExecutionEvent(
-                    timestamp=ts_str,
-                    event_type="ORDER_FILLED",
-                    session_id=session_id,
-                    order_id=fill.order.order_id,
-                    symbol=fill.order.symbol,
-                    side=fill.order.side.value,
-                    quantity=fill.quantity,
-                    fill_price=fill.fill_price,
-                    commission=fill.commission,
-                    slippage=fill.slippage,
-                )
-                self._record_event(session_id, fill_evt)
-                events.append(fill_evt)
+                    fill_evt = FillExecutionEvent(
+                        timestamp=ts_str,
+                        event_type="ORDER_FILLED",
+                        session_id=session_id,
+                        order_id=fill.order.order_id,
+                        symbol=fill.order.symbol,
+                        side=fill.order.side.value,
+                        quantity=fill.quantity,
+                        fill_price=fill.fill_price,
+                        commission=fill.commission,
+                        slippage=fill.slippage,
+                    )
+                    self._record_event(session_id, fill_evt)
+                    events.append(fill_evt)
 
         # 4. Check active position stops via RiskManager
         triggered_stops = risk_mgr.check_position_stops(
@@ -496,17 +703,30 @@ class PaperTradingService:
             events.append(stop_evt)
 
         # 5. Extract strict historical slice (zero lookahead)
-        hist_slice = provider.get_slice(idx)
+        feat_engine = self.feature_engines.get(session_id)
+        if feat_engine is not None:
+            if provider.is_multi_asset():
+                hist_slice = feat_engine.get_all_history_dfs()
+            else:
+                hist_slice = feat_engine.get_history_df(primary_sym)
+        else:
+            hist_slice = provider.get_slice(session.current_bar_index - 1)
         loop_item = snapshot if provider.is_multi_asset() else primary_bar
 
-        # 6. Strategy evaluation
-        raw_signals = strategy.generate_signal(loop_item, hist_slice)
-        if isinstance(raw_signals, SignalEvent):
-            signals = [raw_signals]
-        elif isinstance(raw_signals, list):
-            signals = raw_signals
-        else:
-            signals = []
+        # 6. Strategy evaluation (only if SIGNALS_ENABLED and data is synchronized)
+        signals = []
+        if session.safety_state == SignalSafetyState.SIGNALS_ENABLED.value and is_sync:
+            try:
+                raw_signals = strategy.generate_signal(loop_item, hist_slice)
+                if isinstance(raw_signals, SignalEvent):
+                    signals = [raw_signals]
+                elif isinstance(raw_signals, list):
+                    signals = raw_signals
+                else:
+                    signals = []
+            except Exception as e:
+                logger.error(f"Strategy signal generation error in session {session_id}: {e}")
+                signals = []
 
         # Emit StrategySignalEvent
         for s in signals:
@@ -526,24 +746,28 @@ class PaperTradingService:
 
         # 7. Optional Jev Decision Layer evaluation
         if jev_provider is not None and signals:
-            from backend.app.ai.jev_context import build_market_context
-            from backend.app.ai.jev_schema import JevDecisionType
+            try:
+                from backend.app.ai.jev_context import build_market_context
+                from backend.app.ai.jev_schema import JevDecisionType
 
-            actionable = [s for s in signals if s.signal_type in (SignalType.BUY, SignalType.SELL)]
-            if actionable:
-                ctx = build_market_context(
-                    symbol=actionable[0].symbol,
-                    historical_slice=hist_slice,
-                    portfolio=account.portfolio,
-                    signals=signals,
-                )
-                decision = jev_provider.evaluate(ctx)
-                if decision.decision == JevDecisionType.BUY:
-                    signals = [s for s in signals if s.signal_type == SignalType.BUY]
-                elif decision.decision == JevDecisionType.SELL:
-                    signals = [s for s in signals if s.signal_type == SignalType.SELL]
-                else:
-                    signals = []
+                actionable = [s for s in signals if s.signal_type in (SignalType.BUY, SignalType.SELL)]
+                if actionable:
+                    ctx = build_market_context(
+                        symbol=actionable[0].symbol,
+                        historical_slice=hist_slice,
+                        portfolio=account.portfolio,
+                        signals=signals,
+                    )
+                    decision = jev_provider.evaluate(ctx)
+                    if decision.decision == JevDecisionType.BUY:
+                        signals = [s for s in signals if s.signal_type == SignalType.BUY]
+                    elif decision.decision == JevDecisionType.SELL:
+                        signals = [s for s in signals if s.signal_type == SignalType.SELL]
+                    else:
+                        signals = []
+            except Exception as e:
+                logger.warning(f"Jev evaluation failure or timeout: {e}. Defaulting to NO_ACTION.")
+                signals = []
 
         # 8. Order generation and authoritative RiskManager validation
         for sig in signals:
@@ -933,9 +1157,13 @@ class PaperTradingService:
             return []
         provider = self.providers.get(session_id)
         current_prices = {}
-        if provider and provider.current_index > 0:
-            last_snap = provider.snapshots[provider.current_index - 1]
-            current_prices = {s: b.close for s, b in last_snap.bars.items()}
+        if provider:
+            if hasattr(provider, "latest_snapshot") and provider.latest_snapshot() is not None:
+                last_snap = provider.latest_snapshot()
+                current_prices = {s: b.close for s, b in last_snap.bars.items()}
+            elif getattr(provider, "current_index", 0) > 0 and hasattr(provider, "snapshots"):
+                last_snap = provider.snapshots[provider.current_index - 1]
+                current_prices = {s: b.close for s, b in last_snap.bars.items()}
         return account.get_positions_summary(current_prices)
 
     def get_events(self, session_id: str, limit: int = 100) -> List[Dict[str, Any]]:

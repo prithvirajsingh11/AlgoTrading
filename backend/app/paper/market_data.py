@@ -173,3 +173,15 @@ class HistoricalReplayProvider(MarketDataProvider):
     @property
     def current_index(self) -> int:
         return self._cursor
+
+
+# Re-export streaming components for convenient unified import
+from backend.app.paper.realtime import (
+    ConnectionState,
+    ProviderStatus,
+    BaseProviderAdapter,
+    InMemoryStreamingAdapter,
+    GenericWebSocketAdapter,
+    RealTimeMarketDataProvider,
+)
+

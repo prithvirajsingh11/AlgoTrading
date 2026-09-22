@@ -8,18 +8,23 @@ from typing import Dict, Any, Optional
 
 @dataclass(frozen=True)
 class PaperEvent:
-    """Base event containing explicit simulation timestamp."""
+    """Base event containing explicit simulation/live timestamp and optional receive timestamp."""
 
     timestamp: str
     event_type: str
     session_id: str
+    received_at: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
+        res = {
             "timestamp": self.timestamp,
             "event_type": self.event_type,
             "session_id": self.session_id,
         }
+        if self.received_at:
+            res["received_at"] = self.received_at
+        return res
+
 
 
 @dataclass(frozen=True)
@@ -178,3 +183,66 @@ class SessionLifecycleEvent(PaperEvent):
             "message": self.message,
         })
         return d
+
+
+@dataclass(frozen=True)
+class ProviderStatusEvent(PaperEvent):
+    provider: str = ""
+    status: str = "CONNECTED"
+    connected: bool = True
+    reconnect_count: int = 0
+    latency_ms: Optional[float] = None
+    is_stale: bool = False
+    safety_state: str = "SIGNALS_ENABLED"
+    last_heartbeat: Optional[str] = None
+    error_message: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        d = super().to_dict()
+        d.update({
+            "provider": self.provider,
+            "status": self.status,
+            "connected": self.connected,
+            "reconnect_count": self.reconnect_count,
+            "latency_ms": self.latency_ms,
+            "is_stale": self.is_stale,
+            "safety_state": self.safety_state,
+            "last_heartbeat": self.last_heartbeat,
+            "error_message": self.error_message,
+        })
+        return d
+
+
+@dataclass(frozen=True)
+class MarketUpdateEvent(PaperEvent):
+    symbol: str = ""
+    open: Optional[float] = None
+    high: Optional[float] = None
+    low: Optional[float] = None
+    close: float = 0.0
+    volume: Optional[float] = None
+    bid: Optional[float] = None
+    ask: Optional[float] = None
+    mid: Optional[float] = None
+    last_price: Optional[float] = None
+    latency_ms: Optional[float] = None
+    is_stale: bool = False
+
+    def to_dict(self) -> Dict[str, Any]:
+        d = super().to_dict()
+        d.update({
+            "symbol": self.symbol,
+            "open": self.open,
+            "high": self.high,
+            "low": self.low,
+            "close": self.close,
+            "volume": self.volume,
+            "bid": self.bid,
+            "ask": self.ask,
+            "mid": self.mid,
+            "last_price": self.last_price,
+            "latency_ms": self.latency_ms,
+            "is_stale": self.is_stale,
+        })
+        return d
+

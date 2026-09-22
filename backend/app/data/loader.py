@@ -7,18 +7,28 @@ import pandas as pd
 
 @dataclass(frozen=True)
 class OHLCVBar:
-    """Represents a single chronological OHLCV bar."""
+    """Represents a single chronological OHLCV bar or normalized quote observation."""
     timestamp: datetime
-    open: float
-    high: float
-    low: float
-    close: float
-    volume: float
+    open: Optional[float] = None
+    high: Optional[float] = None
+    low: Optional[float] = None
+    close: float = 0.0
+    volume: Optional[float] = None
     symbol: Optional[str] = None
+    bid: Optional[float] = None
+    ask: Optional[float] = None
+    last_price: Optional[float] = None
+
+    @property
+    def mid(self) -> Optional[float]:
+        """Returns mid price if both bid and ask are available."""
+        if self.bid is not None and self.ask is not None:
+            return (self.bid + self.ask) / 2.0
+        return None
 
     def to_dict(self) -> dict:
         res = {
-            "timestamp": self.timestamp.isoformat(),
+            "timestamp": self.timestamp.isoformat() if hasattr(self.timestamp, "isoformat") else str(self.timestamp),
             "open": self.open,
             "high": self.high,
             "low": self.low,
@@ -27,6 +37,14 @@ class OHLCVBar:
         }
         if self.symbol:
             res["symbol"] = self.symbol
+        if self.bid is not None:
+            res["bid"] = self.bid
+        if self.ask is not None:
+            res["ask"] = self.ask
+        if self.mid is not None:
+            res["mid"] = self.mid
+        if self.last_price is not None:
+            res["last_price"] = self.last_price
         return res
 
 
@@ -35,6 +53,7 @@ class MarketSnapshot:
     """Represents a synchronized multi-asset market observation at timestamp t."""
     timestamp: datetime
     bars: dict[str, OHLCVBar]
+    received_at: Optional[datetime] = None
 
     def get_bar(self, symbol: str) -> Optional[OHLCVBar]:
         return self.bars.get(symbol)
@@ -45,11 +64,29 @@ class MarketSnapshot:
     def __contains__(self, symbol: str) -> bool:
         return symbol in self.bars
 
+    @property
+    def latency_ms(self) -> Optional[float]:
+        """Calculates latency between market timestamp and server receive timestamp."""
+        if self.received_at is not None and self.timestamp is not None:
+            try:
+                r_ts = self.received_at.timestamp()
+                m_ts = self.timestamp.timestamp()
+                return max(0.0, round((r_ts - m_ts) * 1000.0, 2))
+            except Exception:
+                return None
+        return None
+
     def to_dict(self) -> dict:
-        return {
-            "timestamp": self.timestamp.isoformat(),
+        res = {
+            "timestamp": self.timestamp.isoformat() if hasattr(self.timestamp, "isoformat") else str(self.timestamp),
             "bars": {sym: bar.to_dict() for sym, bar in self.bars.items()},
         }
+        if self.received_at:
+            res["received_at"] = self.received_at.isoformat() if hasattr(self.received_at, "isoformat") else str(self.received_at)
+        lat = self.latency_ms
+        if lat is not None:
+            res["latency_ms"] = lat
+        return res
 
 
 class CSVDataLoader:

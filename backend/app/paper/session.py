@@ -16,6 +16,16 @@ class SessionStatus(str, Enum):
     ERROR = "ERROR"
 
 
+class SessionMode(str, Enum):
+    HISTORICAL_REPLAY = "HISTORICAL_REPLAY"
+    REAL_TIME = "REAL_TIME"
+
+
+class SignalSafetyState(str, Enum):
+    SIGNALS_ENABLED = "SIGNALS_ENABLED"
+    SIGNALS_PAUSED = "SIGNALS_PAUSED"
+
+
 class ReplaySpeed(str, Enum):
     HALF = "0.5x"
     ONE = "1x"
@@ -51,7 +61,15 @@ class PaperTradingSession:
     timeframe: str = "1d"
     strategy: str = "TimeSeriesMomentum"
     strategy_params: Dict[str, Any] = field(default_factory=dict)
-    provider: str = "rule_based"  # "rule_based", "xgboost", "typesafe_jev"
+    provider: str = "rule_based"  # Decision layer: "rule_based", "xgboost", "typesafe_jev"
+
+    # Real-time and safety attributes
+    mode: str = SessionMode.HISTORICAL_REPLAY.value
+    data_provider_type: str = "HISTORICAL"  # "HISTORICAL", "LIVE_PROVIDER"
+    safety_state: str = SignalSafetyState.SIGNALS_ENABLED.value
+    max_data_age_seconds: float = 15.0
+    last_data_timestamp: Optional[str] = None
+    latency_ms: Optional[float] = None
 
     initial_capital: float = 100_000.0
     current_equity: float = 100_000.0
@@ -95,6 +113,12 @@ class PaperTradingSession:
             "strategy": self.strategy,
             "strategy_params": self.strategy_params,
             "provider": self.provider,
+            "mode": self.mode,
+            "data_provider_type": self.data_provider_type,
+            "safety_state": self.safety_state,
+            "max_data_age_seconds": self.max_data_age_seconds,
+            "last_data_timestamp": self.last_data_timestamp,
+            "latency_ms": self.latency_ms,
             "initial_capital": self.initial_capital,
             "current_equity": round(self.current_equity, 2),
             "cash": round(self.cash, 2),
@@ -127,6 +151,12 @@ class PaperTradingSession:
             strategy=data.get("strategy", "TimeSeriesMomentum"),
             strategy_params=data.get("strategy_params", {}),
             provider=data.get("provider", "rule_based"),
+            mode=data.get("mode", SessionMode.HISTORICAL_REPLAY.value),
+            data_provider_type=data.get("data_provider_type", data.get("provider_type", "HISTORICAL")),
+            safety_state=data.get("safety_state", SignalSafetyState.SIGNALS_ENABLED.value),
+            max_data_age_seconds=float(data.get("max_data_age_seconds", 15.0)),
+            last_data_timestamp=data.get("last_data_timestamp"),
+            latency_ms=data.get("latency_ms"),
             initial_capital=float(data.get("initial_capital", 100_000.0)),
             current_equity=float(data.get("current_equity", 100_000.0)),
             cash=float(data.get("cash", 100_000.0)),
@@ -154,3 +184,4 @@ class PaperTradingSession:
                 "position_size_pct": 0.20,
             }),
         )
+

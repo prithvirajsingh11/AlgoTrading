@@ -7,7 +7,31 @@ import {
   PaperEventRecord,
   CreatePaperSessionPayload,
   PaperExportResult,
+  MarketProviderInfo,
+  MarketConnectionStatus,
 } from "../types";
+
+export async function getMarketProviders(): Promise<MarketProviderInfo[]> {
+  return request<MarketProviderInfo[]>("/market/providers");
+}
+
+export async function getMarketStatus(): Promise<MarketConnectionStatus> {
+  return request<MarketConnectionStatus>("/market/status");
+}
+
+export async function connectMarketProvider(provider: string, symbols?: string[]): Promise<{ success: boolean; message: string }> {
+  return request<{ success: boolean; message: string }>("/market/connect", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ provider, symbols }),
+  });
+}
+
+export async function disconnectMarketProvider(): Promise<{ success: boolean; message: string }> {
+  return request<{ success: boolean; message: string }>("/market/disconnect", {
+    method: "POST",
+  });
+}
 
 export async function getPaperStatus(): Promise<PaperTradingStatus> {
   return request<PaperTradingStatus>("/paper/status");

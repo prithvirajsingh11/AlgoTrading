@@ -16,6 +16,9 @@ import {
   Download,
   CheckCircle2,
   XCircle,
+  Radio,
+  Wifi,
+  AlertTriangle,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -42,6 +45,8 @@ import {
   getPaperEvents,
   exportPaperResults,
   getPaperWebSocketUrl,
+  getMarketProviders,
+  getMarketStatus,
 } from "../services/paper";
 import { getApiBaseUrl } from "../services/api";
 import { listDatasets } from "../services/datasets";
@@ -54,6 +59,8 @@ import {
   CreatePaperSessionPayload,
   DatasetMetadata,
   StrategyMetadata,
+  MarketProviderInfo,
+  MarketConnectionStatus,
 } from "../types";
 import { LoadingSpinner, ErrorMessage, StatusBadge, EmptyState } from "../components/Common";
 
@@ -67,7 +74,12 @@ export const PaperTradingPage: React.FC = () => {
   const [orders, setOrders] = useState<PaperOrderRecord[]>([]);
   const [positions, setPositions] = useState<PaperPositionRecord[]>([]);
   const [events, setEvents] = useState<PaperEventRecord[]>([]);
-  const [priceHistory, setPriceHistory] = useState<Array<{ timestamp: string; price: number }>>([]);
+  const [priceHistory, setPriceHistory] = useState<Array<{ timestamp: string; price: number; bid?: number; ask?: number }>>([]);
+
+  // Real-time market data feed & health states
+  const [filterMode, setFilterMode] = useState<"ALL" | "HISTORICAL_REPLAY" | "REAL_TIME">("ALL");
+  const [providerStatus, setProviderStatus] = useState<MarketConnectionStatus | null>(null);
+  const [marketProviders, setMarketProviders] = useState<MarketProviderInfo[]>([]);
 
   // UI tabs & modals
   const [activeTab, setActiveTab] = useState<"market" | "positions" | "orders" | "events" | "analytics">("market");
@@ -85,6 +97,10 @@ export const PaperTradingPage: React.FC = () => {
   const [wsConnected, setWsConnected] = useState(false);
 
   // New session form state
+  const [formMode, setFormMode] = useState<"HISTORICAL_REPLAY" | "REAL_TIME">("HISTORICAL_REPLAY");
+  const [formLiveProvider, setFormLiveProvider] = useState<string>("mock");
+  const [formSymbols, setFormSymbols] = useState<string>("AAPL");
+  const [formMaxDataAge, setFormMaxDataAge] = useState<number>(15);
   const [formDataset, setFormDataset] = useState("AAPL");
   const [formStrategy, setFormStrategy] = useState("MovingAverageCross");
   const [formCapital, setFormCapital] = useState(100000);
@@ -101,14 +117,16 @@ export const PaperTradingPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const [sList, dList, stratList] = await Promise.all([
+      const [sList, dList, stratList, provs] = await Promise.all([
         listPaperSessions(),
         listDatasets(),
         listStrategies(),
+        getMarketProviders().catch(() => []),
       ]);
       setSessions(sList);
       setDatasets(dList);
       setStrategies(stratList);
+      setMarketProviders(provs);
 
       if (sList.length > 0) {
         setActiveSessionId(sList[0].session_id);
@@ -138,15 +156,21 @@ export const PaperTradingPage: React.FC = () => {
       setPositions(pos);
       setEvents(evts);
 
+      if (sess.mode === "REAL_TIME") {
+        getMarketStatus().then(setProviderStatus).catch(() => {});
+      }
+
       // Extract price trajectory from market events
       const prices = evts
-        .filter((e) => e.event_type === "MARKET_BAR" && e.close)
+        .filter((e) => (e.event_type === "MARKET_BAR" || e.event_type === "MARKET_UPDATE") && e.close)
         .map((e) => ({
-          timestamp: (e.timestamp || "").split("T")[0],
+          timestamp: (e.timestamp || "").includes("T") ? (e.timestamp || "").split("T")[1].slice(0, 8) : (e.timestamp || "").split("T")[0],
           price: e.close as number,
+          bid: e.bid,
+          ask: e.ask,
         }));
       if (prices.length > 0) {
-        setPriceHistory(prices);
+        setPriceHistory(prices.slice(-100));
       }
     } catch (err) {
       console.error("Error fetching session details:", err);
@@ -191,11 +215,19 @@ export const PaperTradingPage: React.FC = () => {
         // Handle streaming simulation events
         setEvents((prev) => [...prev.slice(-99), data]);
 
-        if (data.event_type === "MARKET_BAR") {
+        if (data.event_type === "MARKET_BAR" || data.event_type === "MARKET_UPDATE") {
           if (data.close) {
+            const timeLabel = (data.timestamp || "").includes("T")
+              ? (data.timestamp || "").split("T")[1].slice(0, 8)
+              : (data.timestamp || "").split("T")[0];
             setPriceHistory((prev) => [
-              ...prev.slice(-49),
-              { timestamp: (data.timestamp || "").split("T")[0], price: data.close },
+              ...prev.slice(-99),
+              {
+                timestamp: timeLabel,
+                price: data.close,
+                bid: data.bid,
+                ask: data.ask,
+              },
             ]);
           }
           setSession((prev) =>
@@ -204,9 +236,22 @@ export const PaperTradingPage: React.FC = () => {
                   ...prev,
                   current_bar_index: data.bar_index || prev.current_bar_index + 1,
                   simulation_timestamp: data.timestamp,
+                  last_data_timestamp: data.timestamp,
+                  latency_ms: data.latency_ms ?? prev.latency_ms,
                 }
               : prev
           );
+        } else if (data.event_type === "PROVIDER_STATUS") {
+          setSession((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  safety_state: data.safety_state,
+                  latency_ms: data.latency_ms ?? prev.latency_ms,
+                }
+              : prev
+          );
+          setProviderStatus(data);
         } else if (data.event_type === "ORDER_FILLED" || data.event_type === "STOP_LOSS_TRIGGERED") {
           // Refresh orders & positions on fill
           getPaperOrders(activeSessionId).then(setOrders).catch(() => {});
@@ -358,14 +403,22 @@ export const PaperTradingPage: React.FC = () => {
         params = { lookback_period: 20, entry_threshold: 2.0, exit_threshold: 0.5 };
       }
 
+      const symList = formMode === "REAL_TIME"
+        ? formSymbols.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean)
+        : [formDataset];
+
       const payload: CreatePaperSessionPayload = {
-        dataset_id: formDataset,
-        symbols: [formDataset],
+        dataset_id: formMode === "REAL_TIME" ? (symList[0] || "AAPL") : formDataset,
+        symbols: symList.length > 0 ? symList : ["AAPL"],
         strategy: formStrategy,
         strategy_params: params,
         initial_capital: Number(formCapital),
         speed: formSpeed,
         allow_shorting: formShorting,
+        mode: formMode,
+        data_provider: formMode === "REAL_TIME" ? "LIVE_PROVIDER" : "HISTORICAL",
+        live_provider: formMode === "REAL_TIME" ? formLiveProvider : undefined,
+        max_data_age_seconds: Number(formMaxDataAge) || 15.0,
       };
 
       const newSess = await createPaperSession(payload);
@@ -431,19 +484,70 @@ export const PaperTradingPage: React.FC = () => {
           </p>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+          {/* Data Source Switcher */}
+          <div style={{ display: "flex", borderRadius: "4px", overflow: "hidden", border: "1px solid var(--border-subtle)" }}>
+            <button
+              onClick={() => setFilterMode("ALL")}
+              style={{
+                padding: "0.35rem 0.65rem",
+                fontSize: "0.75rem",
+                background: filterMode === "ALL" ? "var(--bg-card-hover)" : "var(--bg-surface)",
+                color: filterMode === "ALL" ? "var(--accent-blue)" : "var(--text-secondary)",
+                border: "none",
+                cursor: "pointer",
+                fontWeight: filterMode === "ALL" ? 600 : 400,
+              }}
+            >
+              All Feeds
+            </button>
+            <button
+              onClick={() => setFilterMode("HISTORICAL_REPLAY")}
+              style={{
+                padding: "0.35rem 0.65rem",
+                fontSize: "0.75rem",
+                background: filterMode === "HISTORICAL_REPLAY" ? "var(--bg-card-hover)" : "var(--bg-surface)",
+                color: filterMode === "HISTORICAL_REPLAY" ? "var(--accent-blue)" : "var(--text-secondary)",
+                borderLeft: "1px solid var(--border-subtle)",
+                borderRight: "1px solid var(--border-subtle)",
+                borderTop: "none",
+                borderBottom: "none",
+                cursor: "pointer",
+                fontWeight: filterMode === "HISTORICAL_REPLAY" ? 600 : 400,
+              }}
+            >
+              Historical Replay
+            </button>
+            <button
+              onClick={() => setFilterMode("REAL_TIME")}
+              style={{
+                padding: "0.35rem 0.65rem",
+                fontSize: "0.75rem",
+                background: filterMode === "REAL_TIME" ? "var(--bg-card-hover)" : "var(--bg-surface)",
+                color: filterMode === "REAL_TIME" ? "var(--status-green)" : "var(--text-secondary)",
+                border: "none",
+                cursor: "pointer",
+                fontWeight: filterMode === "REAL_TIME" ? 600 : 400,
+              }}
+            >
+              ● Real-Time
+            </button>
+          </div>
+
           {/* Active Session Dropdown */}
           <select
             className="input-field"
-            style={{ width: "230px", fontSize: "0.8125rem" }}
+            style={{ width: "240px", fontSize: "0.8125rem" }}
             value={activeSessionId || ""}
             onChange={(e) => setActiveSessionId(e.target.value)}
           >
-            {sessions.map((s) => (
-              <option key={s.session_id} value={s.session_id}>
-                {s.session_id} ({s.strategy} - {s.status})
-              </option>
-            ))}
+            {sessions
+              .filter((s) => filterMode === "ALL" || (s.mode || "HISTORICAL_REPLAY") === filterMode)
+              .map((s) => (
+                <option key={s.session_id} value={s.session_id}>
+                  {s.session_id} ({s.mode === "REAL_TIME" ? "LIVE" : "HIST"} - {s.strategy})
+                </option>
+              ))}
           </select>
 
           <button
@@ -459,8 +563,8 @@ export const PaperTradingPage: React.FC = () => {
       {/* Prominent Safety & Simulation Warning */}
       <div
         style={{
-          backgroundColor: "rgba(239, 68, 68, 0.08)",
-          border: "1px solid rgba(239, 68, 68, 0.3)",
+          backgroundColor: session?.mode === "REAL_TIME" ? "rgba(234, 179, 8, 0.08)" : "rgba(239, 68, 68, 0.08)",
+          border: session?.mode === "REAL_TIME" ? "1px solid rgba(234, 179, 8, 0.3)" : "1px solid rgba(239, 68, 68, 0.3)",
           borderRadius: "6px",
           padding: "0.875rem 1.25rem",
           display: "flex",
@@ -468,16 +572,117 @@ export const PaperTradingPage: React.FC = () => {
           gap: "1rem",
         }}
       >
-        <ShieldAlert size={26} style={{ color: "var(--status-red)", flexShrink: 0 }} />
+        <ShieldAlert size={26} style={{ color: session?.mode === "REAL_TIME" ? "var(--status-amber)" : "var(--status-red)", flexShrink: 0 }} />
         <div>
-          <div style={{ fontWeight: 800, fontSize: "0.875rem", color: "var(--status-red)", letterSpacing: "0.04em" }}>
-            PAPER TRADING ENVIRONMENT — NO REAL MONEY
+          <div style={{ fontWeight: 800, fontSize: "0.875rem", color: session?.mode === "REAL_TIME" ? "var(--status-amber)" : "var(--status-red)", letterSpacing: "0.04em" }}>
+            {session?.mode === "REAL_TIME"
+              ? "PAPER TRADING — REAL-TIME MARKET DATA — NO REAL MONEY"
+              : "PAPER TRADING ENVIRONMENT — NO REAL MONEY"}
           </div>
           <div style={{ fontSize: "0.8125rem", color: "var(--text-secondary)", marginTop: "0.15rem" }}>
-            All orders, capital balances, and executions are strictly simulated in-memory. Brokerage API connections are disabled by architecture invariants.
+            {session?.mode === "REAL_TIME"
+              ? "Prices are fed from real-time market data providers. Zero real-money or brokerage execution. All order fills, positions, and risk rules terminate in SimulatedBroker."
+              : "All orders, capital balances, and executions are strictly simulated in-memory. Brokerage API connections are disabled by architecture invariants."}
           </div>
         </div>
       </div>
+
+      {/* Real-Time Live Feed Telemetry Card */}
+      {session && session.mode === "REAL_TIME" && (
+        <div
+          style={{
+            backgroundColor: "var(--bg-surface)",
+            border: "1px solid var(--border-subtle)",
+            borderRadius: "6px",
+            padding: "1rem 1.25rem",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+            gap: "1rem",
+            alignItems: "center",
+          }}
+        >
+          <div>
+            <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>LIVE DATA PROVIDER</div>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.25rem" }}>
+              <Radio size={16} style={{ color: "var(--status-green)" }} />
+              <strong style={{ fontSize: "0.95rem" }}>{session.data_provider_type === "LIVE_PROVIDER" ? "In-Memory Live Stream" : session.provider}</strong>
+            </div>
+            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>
+              Symbols: <strong>{session.symbols.join(", ")}</strong>
+            </div>
+          </div>
+
+          <div>
+            <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>FEED CONNECTION</div>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.25rem" }}>
+              <span
+                style={{
+                  width: "9px",
+                  height: "9px",
+                  borderRadius: "50%",
+                  backgroundColor: (providerStatus?.connected ?? true) ? "var(--status-green)" : "var(--status-red)",
+                }}
+              />
+              <span style={{ fontWeight: 700, fontSize: "0.875rem" }}>
+                {providerStatus?.state || (session.status === "RUNNING" ? "CONNECTED" : "STANDBY")}
+              </span>
+            </div>
+            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>
+              Reconnects: {providerStatus?.reconnect_count ?? 0}
+            </div>
+          </div>
+
+          <div>
+            <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>SIGNAL SAFETY STATE</div>
+            <div style={{ marginTop: "0.25rem" }}>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.35rem",
+                  padding: "0.25rem 0.6rem",
+                  borderRadius: "4px",
+                  fontSize: "0.75rem",
+                  fontWeight: 700,
+                  backgroundColor:
+                    session.safety_state === "SIGNALS_PAUSED"
+                      ? "rgba(234, 179, 8, 0.15)"
+                      : "rgba(34, 197, 94, 0.15)",
+                  color:
+                    session.safety_state === "SIGNALS_PAUSED"
+                      ? "var(--status-amber)"
+                      : "var(--status-green)",
+                }}
+              >
+                {session.safety_state === "SIGNALS_PAUSED" ? (
+                  <>
+                    <AlertTriangle size={13} /> SIGNALS PAUSED (STALE / STANDBY)
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 size={13} /> SIGNALS ACTIVE (FRESH DATA)
+                  </>
+                )}
+              </span>
+            </div>
+            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>
+              Max Data Age: {session.max_data_age_seconds ?? 15}s
+            </div>
+          </div>
+
+          <div>
+            <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>FEED LATENCY & HEARTBEAT</div>
+            <div style={{ fontSize: "1.1rem", fontWeight: 700, marginTop: "0.25rem" }} className="mono">
+              {session.latency_ms !== null && session.latency_ms !== undefined
+                ? `${session.latency_ms.toFixed(1)} ms`
+                : "< 1.5 ms"}
+            </div>
+            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>
+              Last Tick: {session.last_data_timestamp ? session.last_data_timestamp.slice(-8) : "Active"}
+            </div>
+          </div>
+        </div>
+      )}
 
       {error && <ErrorMessage message={error} onRetry={() => setError(null)} />}
 
@@ -513,19 +718,21 @@ export const PaperTradingPage: React.FC = () => {
                   className="btn btn-primary btn-sm"
                   style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}
                 >
-                  <Play size={14} /> {session.status === "PAUSED" ? "Resume" : "Start Replay"}
+                  <Play size={14} /> {session.mode === "REAL_TIME" ? (session.status === "PAUSED" ? "Resume Stream" : "Start Live Feed") : (session.status === "PAUSED" ? "Resume" : "Start Replay")}
                 </button>
               )}
 
-              <button
-                onClick={handleStep}
-                disabled={actionLoading || session.status === "RUNNING" || session.status === "STOPPED"}
-                className="btn btn-secondary btn-sm"
-                title="Advance simulation by 1 historical bar"
-                style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}
-              >
-                <SkipForward size={14} /> Step 1 Bar
-              </button>
+              {session.mode !== "REAL_TIME" && (
+                <button
+                  onClick={handleStep}
+                  disabled={actionLoading || session.status === "RUNNING" || session.status === "STOPPED"}
+                  className="btn btn-secondary btn-sm"
+                  title="Advance simulation by 1 historical bar"
+                  style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}
+                >
+                  <SkipForward size={14} /> Step 1 Bar
+                </button>
+              )}
 
               <button
                 onClick={handleStop}
@@ -537,22 +744,28 @@ export const PaperTradingPage: React.FC = () => {
               </button>
 
               {/* Speed selector */}
-              <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginLeft: "0.5rem" }}>
-                <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>SPEED:</span>
-                <select
-                  value={session.speed}
-                  onChange={(e) => handleSpeedChange(e.target.value)}
-                  className="input-field"
-                  style={{ width: "80px", padding: "0.25rem 0.5rem", fontSize: "0.75rem" }}
-                >
-                  <option value="0.5x">0.5x</option>
-                  <option value="1x">1x</option>
-                  <option value="2x">2x</option>
-                  <option value="5x">5x</option>
-                  <option value="10x">10x</option>
-                  <option value="MAX">MAX</option>
-                </select>
-              </div>
+              {session.mode !== "REAL_TIME" ? (
+                <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginLeft: "0.5rem" }}>
+                  <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>SPEED:</span>
+                  <select
+                    value={session.speed}
+                    onChange={(e) => handleSpeedChange(e.target.value)}
+                    className="input-field"
+                    style={{ width: "80px", padding: "0.25rem 0.5rem", fontSize: "0.75rem" }}
+                  >
+                    <option value="0.5x">0.5x</option>
+                    <option value="1x">1x</option>
+                    <option value="2x">2x</option>
+                    <option value="5x">5x</option>
+                    <option value="10x">10x</option>
+                    <option value="MAX">MAX</option>
+                  </select>
+                </div>
+              ) : (
+                <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginLeft: "0.5rem", fontSize: "0.75rem", color: "var(--status-green)", fontWeight: 600 }}>
+                  <Wifi size={13} /> STREAMING (REAL-TIME)
+                </div>
+              )}
 
               {/* CSV Exports */}
               <div style={{ display: "flex", alignItems: "center", gap: "0.35rem", marginLeft: "0.5rem" }}>
@@ -595,23 +808,34 @@ export const PaperTradingPage: React.FC = () => {
           {/* Progress bar */}
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "0.35rem" }}>
-              <span>
-                Replay Progress: <strong>{session.current_bar_index}</strong> / {session.total_bars} bars ({progressPct}%)
-              </span>
-              <span className="mono">
-                Date: {session.simulation_timestamp ? session.simulation_timestamp.split("T")[0] : "Pending start"}
-              </span>
+              {session.mode === "REAL_TIME" ? (
+                <>
+                  <span>Live Feed Ticks: <strong>{session.current_bar_index}</strong> received</span>
+                  <span>Last Tick: <strong>{session.last_data_timestamp || session.simulation_timestamp || "Awaiting stream..."}</strong></span>
+                </>
+              ) : (
+                <>
+                  <span>
+                    Replay Progress: <strong>{session.current_bar_index}</strong> / {session.total_bars} bars ({progressPct}%)
+                  </span>
+                  <span className="mono">
+                    Date: {session.simulation_timestamp ? session.simulation_timestamp.split("T")[0] : "Pending start"}
+                  </span>
+                </>
+              )}
             </div>
-            <div style={{ width: "100%", height: "6px", backgroundColor: "var(--bg-app)", borderRadius: "3px", overflow: "hidden" }}>
-              <div
-                style={{
-                  width: `${progressPct}%`,
-                  height: "100%",
-                  backgroundColor: "var(--accent-blue)",
-                  transition: "width 0.2s ease",
-                }}
-              />
-            </div>
+            {session.mode !== "REAL_TIME" && (
+              <div style={{ width: "100%", height: "6px", backgroundColor: "var(--bg-app)", borderRadius: "3px", overflow: "hidden" }}>
+                <div
+                  style={{
+                    width: `${progressPct}%`,
+                    height: "100%",
+                    backgroundColor: "var(--accent-blue)",
+                    transition: "width 0.2s ease",
+                  }}
+                />
+              </div>
+            )}
           </div>
         </div>
       ) : (
@@ -757,16 +981,25 @@ export const PaperTradingPage: React.FC = () => {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
                 <div>
                   <h3 style={{ fontSize: "0.95rem", fontWeight: 700 }}>
-                    Simulated Price Action — {session.symbols.join(" / ")}
+                    {session.mode === "REAL_TIME" ? "Live Market Stream" : "Simulated Price Action"} — {session.symbols.join(" / ")}
                   </h3>
                   <p style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
-                    Bar-by-bar progression synchronized with zero lookahead bias
+                    {session.mode === "REAL_TIME"
+                      ? "Bounded streaming observation window with real-time quote tracking & execution markers"
+                      : "Bar-by-bar progression synchronized with zero lookahead bias"}
                   </p>
                 </div>
-                <div style={{ fontSize: "0.8125rem" }} className="mono">
-                  {priceHistory.length > 0
-                    ? `Latest Close: $${priceHistory[priceHistory.length - 1].price.toFixed(2)}`
-                    : "Awaiting bars..."}
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontSize: "0.8125rem", fontWeight: 700 }} className="mono">
+                    {priceHistory.length > 0
+                      ? `Latest: $${priceHistory[priceHistory.length - 1].price.toFixed(2)}`
+                      : "Awaiting bars..."}
+                  </div>
+                  {priceHistory.length > 0 && priceHistory[priceHistory.length - 1].bid && (
+                    <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }} className="mono">
+                      Bid: ${priceHistory[priceHistory.length - 1].bid?.toFixed(2)} | Ask: ${priceHistory[priceHistory.length - 1].ask?.toFixed(2)}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1065,23 +1298,125 @@ export const PaperTradingPage: React.FC = () => {
             </div>
 
             <form onSubmit={handleCreateSession} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+              {/* Data Feed Mode Selector */}
               <div>
                 <label style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "block", marginBottom: "0.25rem" }}>
-                  HISTORICAL DATASET
+                  DATA FEED MODE
                 </label>
-                <select
-                  className="input-field"
-                  value={formDataset}
-                  onChange={(e) => setFormDataset(e.target.value)}
-                  style={{ width: "100%" }}
-                >
-                  {datasets.map((d) => (
-                    <option key={d.dataset_id} value={d.dataset_id}>
-                      {d.dataset_id} ({d.row_count} bars)
-                    </option>
-                  ))}
-                </select>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+                  <button
+                    type="button"
+                    onClick={() => setFormMode("HISTORICAL_REPLAY")}
+                    style={{
+                      padding: "0.5rem",
+                      borderRadius: "4px",
+                      fontSize: "0.75rem",
+                      border: formMode === "HISTORICAL_REPLAY" ? "1px solid var(--accent-blue)" : "1px solid var(--border-subtle)",
+                      background: formMode === "HISTORICAL_REPLAY" ? "var(--bg-card-hover)" : "var(--bg-surface)",
+                      color: formMode === "HISTORICAL_REPLAY" ? "var(--accent-blue)" : "var(--text-secondary)",
+                      cursor: "pointer",
+                      fontWeight: formMode === "HISTORICAL_REPLAY" ? 600 : 400,
+                    }}
+                  >
+                    Historical Replay
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormMode("REAL_TIME")}
+                    style={{
+                      padding: "0.5rem",
+                      borderRadius: "4px",
+                      fontSize: "0.75rem",
+                      border: formMode === "REAL_TIME" ? "1px solid var(--status-green)" : "1px solid var(--border-subtle)",
+                      background: formMode === "REAL_TIME" ? "var(--bg-card-hover)" : "var(--bg-surface)",
+                      color: formMode === "REAL_TIME" ? "var(--status-green)" : "var(--text-secondary)",
+                      cursor: "pointer",
+                      fontWeight: formMode === "REAL_TIME" ? 600 : 400,
+                    }}
+                  >
+                    ● Live Market Feed
+                  </button>
+                </div>
               </div>
+
+              {/* Dataset selection if Historical, or Provider & Symbols if Real-Time */}
+              {formMode === "HISTORICAL_REPLAY" ? (
+                <div>
+                  <label style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "block", marginBottom: "0.25rem" }}>
+                    HISTORICAL DATASET
+                  </label>
+                  <select
+                    className="input-field"
+                    value={formDataset}
+                    onChange={(e) => setFormDataset(e.target.value)}
+                    style={{ width: "100%" }}
+                  >
+                    {datasets.map((d) => (
+                      <option key={d.dataset_id} value={d.dataset_id}>
+                        {d.dataset_id} ({d.row_count} bars)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                  <div>
+                    <label style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "block", marginBottom: "0.25rem" }}>
+                      STREAMING PROVIDER
+                    </label>
+                    <select
+                      className="input-field"
+                      value={formLiveProvider}
+                      onChange={(e) => setFormLiveProvider(e.target.value)}
+                      style={{ width: "100%" }}
+                    >
+                      {marketProviders.filter((p) => p.is_live).length > 0 ? (
+                        marketProviders
+                          .filter((p) => p.is_live)
+                          .map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name} {p.status === "unconfigured" ? "(Requires Config)" : ""}
+                            </option>
+                          ))
+                      ) : (
+                        <>
+                          <option value="mock">In-Memory Mock Streaming (Local Test / Demo)</option>
+                          <option value="websocket">Generic WebSocket Live Feed</option>
+                        </>
+                      )}
+                    </select>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "0.75rem" }}>
+                    <div>
+                      <label style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "block", marginBottom: "0.25rem" }}>
+                        SYMBOLS (COMMA-SEPARATED)
+                      </label>
+                      <input
+                        type="text"
+                        className="input-field"
+                        value={formSymbols}
+                        onChange={(e) => setFormSymbols(e.target.value)}
+                        placeholder="AAPL, MSFT"
+                        style={{ width: "100%" }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "block", marginBottom: "0.25rem" }}>
+                        MAX AGE (SEC)
+                      </label>
+                      <input
+                        type="number"
+                        className="input-field"
+                        value={formMaxDataAge}
+                        onChange={(e) => setFormMaxDataAge(Number(e.target.value))}
+                        min={1}
+                        max={300}
+                        style={{ width: "100%" }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "block", marginBottom: "0.25rem" }}>
