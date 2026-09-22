@@ -124,6 +124,23 @@ export const SettingsPage: React.FC = () => {
           </p>
         </div>
 
+        {/* About & System Invariants */}
+        <div style={{ backgroundColor: "var(--bg-surface)", border: "1px solid var(--border-subtle)", borderRadius: "4px", padding: "1.25rem" }}>
+          <div style={{ fontSize: "0.875rem", fontWeight: 600, marginBottom: "0.5rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+              <Server size={16} style={{ color: "var(--accent-blue)" }} /> About AlgoTrade
+            </span>
+            <span style={{ fontSize: "0.75rem", fontWeight: 700, padding: "0.15rem 0.5rem", borderRadius: "3px", backgroundColor: "rgba(59, 130, 246, 0.15)", color: "var(--accent-blue)" }}>
+              v1.0.0
+            </span>
+          </div>
+          <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+            <div><strong>Operating Invariant:</strong> Pure Simulation &amp; Quantitative Research Laboratory. Zero live brokerage connections or order endpoints.</div>
+            <div><strong>Supported Modes:</strong> <code>HISTORICAL_REPLAY</code>, <code>SYNTHETIC_STREAM</code>, <code>REAL_TIME</code>.</div>
+            <div><strong>Backend API Version:</strong> 1.0.0 (FastAPI + Pydantic v2 + SQLite Engine).</div>
+          </div>
+        </div>
+
         {/* Save Button */}
         <div>
           <button type="submit" className="btn btn-primary">

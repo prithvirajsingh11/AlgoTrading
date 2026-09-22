@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" width="100%" height="100%" style="background-color: #0b0f19; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+  <!-- Header Bar -->
+  <rect x="0" y="0" width="1200" height="50" fill="#0f172a" stroke="#1e293b" stroke-width="1"/>
+  <circle cx="25" cy="25" r="7" fill="#3b82f6"/>
+  <text x="42" y="30" fill="#f8fafc" font-size="15" font-weight="700" letter-spacing="1">ALGOTRADE</text>
+  <rect x="150" y="14" width="55" height="22" rx="3" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="177" y="29" fill="#94a3b8" font-size="10" text-anchor="middle" font-weight="600">v1.0.0</text>
+  <rect x="220" y="12" width="280" height="26" rx="4" fill="rgba(239, 68, 68, 0.15)" stroke="#ef4444" stroke-width="1"/>
+  <text x="360" y="29" fill="#ef4444" font-size="11" text-anchor="middle" font-weight="700" letter-spacing="0.5">⚠️ SIMULATION ONLY — NO REAL MONEY</text>
+  <text x="1175" y="30" fill="#10b981" font-size="12" text-anchor="end" font-weight="600">● SYSTEM HEALTHY</text>
+
+  <!-- Navigation Sidebar -->
+  <rect x="0" y="50" width="180" height="650" fill="#0f172a" stroke="#1e293b" stroke-width="1"/>
+  <text x="20" y="85" fill="#94a3b8" font-size="13">Dashboard</text>
+  <text x="20" y="125" fill="#3b82f6" font-size="13" font-weight="700">▶ Backtests</text>
+  <text x="20" y="165" fill="#94a3b8" font-size="13">Strategies</text>
+  <text x="20" y="205" fill="#94a3b8" font-size="13">ML Lab</text>
+  <text x="20" y="245" fill="#94a3b8" font-size="13">Jev Lab</text>
+  <text x="20" y="285" fill="#94a3b8" font-size="13">Paper Trading</text>
+  <text x="20" y="325" fill="#94a3b8" font-size="13">Settings</text>
+
+  <!-- Main Content Header -->
+  <text x="210" y="85" fill="#f8fafc" font-size="20" font-weight="700">Discrete-Event Backtest Laboratory</text>
+  <text x="210" y="105" fill="#64748b" font-size="12">Zero-lookahead historical bar-by-bar queue simulation with intrabar stop crosses and slippage modeling</text>
+  <rect x="1050" y="70" width="120" height="30" rx="4" fill="rgba(59, 130, 246, 0.15)" stroke="#3b82f6" stroke-width="1"/>
+  <text x="1110" y="90" fill="#60a5fa" font-size="11" text-anchor="middle" font-weight="700">HISTORICAL DEMO</text>
+
+  <!-- Left: Configuration Form -->
+  <rect x="210" y="125" width="280" height="555" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="230" y="155" fill="#38bdf8" font-size="13" font-weight="700">EXPERIMENT CONFIGURATION</text>
+  
+  <text x="230" y="190" fill="#94a3b8" font-size="11" font-weight="600">DATASET</text>
+  <rect x="230" y="200" width="240" height="32" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <text x="240" y="221" fill="#f8fafc" font-size="12">benchmark_single_asset (5,000 bars)</text>
+
+  <text x="230" y="255" fill="#94a3b8" font-size="11" font-weight="600">STRATEGY</text>
+  <rect x="230" y="265" width="240" height="32" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <text x="240" y="286" fill="#f8fafc" font-size="12">TimeSeriesMomentum</text>
+
+  <text x="230" y="320" fill="#94a3b8" font-size="11" font-weight="600">LOOKBACK / HOLDING PERIOD</text>
+  <rect x="230" y="330" width="240" height="32" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <text x="240" y="351" fill="#f8fafc" font-size="12">Lookback: 20 | Holding: 5</text>
+
+  <text x="230" y="385" fill="#94a3b8" font-size="11" font-weight="600">CAPITAL &amp; EXECUTION</text>
+  <rect x="230" y="395" width="240" height="32" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <text x="240" y="416" fill="#f8fafc" font-size="12">$100,000 | 5 bps slippage | $1 fee</text>
+
+  <text x="230" y="450" fill="#94a3b8" font-size="11" font-weight="600">RISK SIZING</text>
+  <rect x="230" y="460" width="240" height="32" rx="4" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <text x="240" y="481" fill="#f8fafc" font-size="12">25% Size | 50% Max | 25% Circuit</text>
+
+  <rect x="230" y="520" width="240" height="40" rx="4" fill="#3b82f6"/>
+  <text x="350" y="545" fill="#ffffff" font-size="13" font-weight="700" text-anchor="middle">⚡ Run Discrete Backtest</text>
+
+  <text x="230" y="590" fill="#64748b" font-size="10">REPRODUCIBILITY HASH (SHA-256):</text>
+  <text x="230" y="608" fill="#38bdf8" font-size="10" font-family="monospace">8bf3f6e378725adc...97f1283c</text>
+
+  <!-- Right: Backtest Results Area -->
+  <!-- Top Metrics Row -->
+  <rect x="510" y="125" width="155" height="75" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="520" y="147" fill="#94a3b8" font-size="10" font-weight="600">TOTAL RETURN</text>
+  <text x="520" y="175" fill="#10b981" font-size="20" font-weight="700">+4.31%</text>
+
+  <rect x="680" y="125" width="155" height="75" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="690" y="147" fill="#94a3b8" font-size="10" font-weight="600">SHARPE RATIO</text>
+  <text x="690" y="175" fill="#f8fafc" font-size="20" font-weight="700">0.5225</text>
+
+  <rect x="850" y="125" width="155" height="75" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="860" y="147" fill="#94a3b8" font-size="10" font-weight="600">MAX DRAWDOWN</text>
+  <text x="860" y="175" fill="#f87171" font-size="20" font-weight="700">1.93%</text>
+
+  <rect x="1020" y="125" width="150" height="75" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="1030" y="147" fill="#94a3b8" font-size="10" font-weight="600">WIN RATE / TRADES</text>
+  <text x="1030" y="175" fill="#f8fafc" font-size="20" font-weight="700">60% (5)</text>
+
+  <!-- Big Equity Curve Chart -->
+  <rect x="510" y="215" width="660" height="280" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="530" y="240" fill="#f8fafc" font-size="13" font-weight="700">Cumulative Portfolio Equity Curve &amp; High-Watermark</text>
+  <polyline points="530,450 600,430 670,440 740,410 810,380 880,390 950,340 1020,350 1090,300 1150,290" fill="none" stroke="#10b981" stroke-width="2.5"/>
+  <line x1="530" y1="290" x2="1150" y2="290" stroke="#64748b" stroke-width="1" stroke-dasharray="3"/>
+  <text x="1155" y="293" fill="#64748b" font-size="10">Peak</text>
+
+  <!-- Drawdown Under-water Chart -->
+  <rect x="510" y="510" width="660" height="170" rx="6" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="530" y="535" fill="#f8fafc" font-size="13" font-weight="700">Underwater Drawdown Profile (Circuit Breaker Gate)</text>
+  <polyline points="530,560 600,575 670,560 740,580 810,560 880,570 950,560 1020,565 1090,560 1150,560" fill="none" stroke="#ef4444" stroke-width="2"/>
+  <line x1="530" y1="640" x2="1150" y2="640" stroke="#ef4444" stroke-width="1" stroke-dasharray="4"/>
+  <text x="1155" y="643" fill="#ef4444" font-size="10">25% Halt</text>
+</svg>

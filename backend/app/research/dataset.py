@@ -142,6 +142,17 @@ class DatasetManager:
                 meta = self._inspect_file_dataset(file_path, source="parquet")
                 discovered.append(meta)
 
+        # 3. Demo datasets (only if using default raw_data_dir)
+        if self.raw_data_dir == (settings.data_dir / "raw"):
+            demo_dir = settings.data_dir / "demo"
+            if demo_dir.exists():
+                for file_path in sorted(demo_dir.glob("*.csv")):
+                    dataset_id = file_path.stem
+                    if dataset_id in self._custom_metadata or any(d.dataset_id == dataset_id for d in discovered):
+                        continue
+                    meta = self._inspect_file_dataset(file_path, source="demo_csv")
+                    discovered.append(meta)
+
         return discovered
 
     def get_dataset_metadata(self, dataset_id: str) -> Optional[DatasetMetadata]:
@@ -175,15 +186,28 @@ class DatasetManager:
                 loader = CSVDataLoader()
                 return loader.load_csv(matches[0])
 
-        raise FileNotFoundError(f"Dataset '{dataset_id}' not found in {self.raw_data_dir}")
+        # Check demo files on disk
+        demo_dir = settings.data_dir / "demo"
+        if demo_dir.exists():
+            csv_path = demo_dir / f"{dataset_id}.csv"
+            if csv_path.exists():
+                loader = CSVDataLoader()
+                return loader.load_csv(csv_path)
+
+            matches = list(demo_dir.glob(f"{dataset_id}*.csv"))
+            if matches:
+                loader = CSVDataLoader()
+                return loader.load_csv(matches[0])
+
+        raise FileNotFoundError(f"Dataset '{dataset_id}' not found in {self.raw_data_dir} or {demo_dir}")
 
     def _inspect_file_dataset(self, file_path: Path, source: str) -> DatasetMetadata:
         dataset_id = file_path.stem
-        symbol = dataset_id.split("_")[0].upper()
+        symbol = "AAPL" if dataset_id.startswith("benchmark") else dataset_id.split("_")[0].upper()
         symbols = [symbol]
 
         try:
-            if source == "csv":
+            if source in ("csv", "demo_csv"):
                 loader = CSVDataLoader()
                 df = loader.load_csv(file_path)
             elif source == "parquet":

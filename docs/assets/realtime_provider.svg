@@ -1,0 +1,130 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 620" width="1000" height="620">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b0f19" />
+      <stop offset="100%" stop-color="#111827" />
+    </linearGradient>
+    <linearGradient id="panelGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1000" height="620" fill="url(#bgGrad)" />
+
+  <!-- Top App Navigation Bar -->
+  <rect x="0" y="0" width="1000" height="52" fill="#0f172a" stroke="#334155" stroke-width="1" />
+  <circle cx="28" cy="26" r="10" fill="#38bdf8" />
+  <text x="46" y="31" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="700" font-size="16">AlgoTrade</text>
+  <rect x="130" y="16" width="62" height="20" rx="10" fill="#334155" />
+  <text x="144" y="30" fill="#38bdf8" font-family="monospace" font-size="11" font-weight="600">v1.0.0</text>
+
+  <!-- Nav Items -->
+  <text x="220" y="31" fill="#94a3b8" font-family="sans-serif" font-size="13">Overview</text>
+  <text x="300" y="31" fill="#94a3b8" font-family="sans-serif" font-size="13">Backtesting</text>
+  <text x="395" y="31" fill="#94a3b8" font-family="sans-serif" font-size="13">Machine Learning</text>
+  <text x="530" y="31" fill="#94a3b8" font-family="sans-serif" font-size="13">Paper Trading</text>
+  <text x="640" y="31" fill="#38bdf8" font-family="sans-serif" font-size="13" font-weight="600">Real-Time Data</text>
+
+  <!-- Top Right Badges -->
+  <rect x="760" y="14" width="110" height="24" rx="12" fill="#1e293b" stroke="#10b981" stroke-width="1" />
+  <circle cx="774" cy="26" r="4" fill="#10b981" />
+  <text x="784" y="30" fill="#10b981" font-family="monospace" font-size="10" font-weight="bold">FEED: HEALTHY</text>
+
+  <rect x="880" y="14" width="105" height="24" rx="12" fill="#1e293b" stroke="#64748b" stroke-width="1" />
+  <text x="892" y="30" fill="#94a3b8" font-family="monospace" font-size="10">API: READY</text>
+
+  <!-- Page Header -->
+  <text x="35" y="90" fill="#f8fafc" font-family="sans-serif" font-weight="700" font-size="22">Real-Time Market Data Provider</text>
+  <text x="35" y="112" fill="#94a3b8" font-family="sans-serif" font-size="13">Live WebSocket Adapter v2 · Zero Credentials Leakage · Bar Aggregator · Stale Data Safeguards</text>
+
+  <!-- Invariant Notice Banner -->
+  <rect x="35" y="128" width="930" height="34" rx="6" fill="#1e293b" stroke="#38bdf8" stroke-dasharray="4" stroke-width="1" />
+  <text x="50" y="150" fill="#38bdf8" font-family="sans-serif" font-size="12" font-weight="600">INVARIANT ENFORCED:</text>
+  <text x="185" y="150" fill="#cbd5e1" font-family="sans-serif" font-size="12">Zero fake data in REAL_TIME mode. Unconfigured credentials transition strictly to NOT_CONFIGURED. SimulatedBroker handles execution.</text>
+
+  <!-- Card 1: Provider Status & Configuration (Left) -->
+  <rect x="35" y="178" width="450" height="410" rx="8" fill="url(#panelGrad)" stroke="#334155" stroke-width="1" />
+  <text x="55" y="210" fill="#f8fafc" font-family="sans-serif" font-weight="600" font-size="16">Adapter Lifecycle &amp; Telemetry</text>
+
+  <rect x="55" y="226" width="410" height="58" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1" />
+  <text x="70" y="248" fill="#94a3b8" font-family="sans-serif" font-size="11">ACTIVE ADAPTER</text>
+  <text x="70" y="268" fill="#f8fafc" font-family="monospace" font-size="14" font-weight="bold">AlpacaWebSocketClient (v2)</text>
+  <rect x="340" y="242" width="110" height="26" rx="13" fill="#064e3b" stroke="#10b981" stroke-width="1" />
+  <circle cx="355" cy="255" r="4" fill="#10b981" />
+  <text x="365" y="259" fill="#10b981" font-family="monospace" font-size="10" font-weight="bold">CONNECTED</text>
+
+  <!-- Metric Rows -->
+  <text x="55" y="315" fill="#94a3b8" font-family="sans-serif" font-size="12">Lifecycle State</text>
+  <text x="320" y="315" fill="#10b981" font-family="monospace" font-size="12" font-weight="600">STREAMING (HEALTHY)</text>
+
+  <line x1="55" y1="328" x2="465" y2="328" stroke="#1e293b" stroke-width="1" />
+
+  <text x="55" y="352" fill="#94a3b8" font-family="sans-serif" font-size="12">Subscribed Symbols</text>
+  <text x="320" y="352" fill="#38bdf8" font-family="monospace" font-size="12" font-weight="600">AAPL, MSFT, SPY</text>
+
+  <line x1="55" y1="365" x2="465" y2="365" stroke="#1e293b" stroke-width="1" />
+
+  <text x="55" y="389" fill="#94a3b8" font-family="sans-serif" font-size="12">Average Feed Latency</text>
+  <text x="320" y="389" fill="#f8fafc" font-family="monospace" font-size="12" font-weight="600">4.2 ms (p95: 8.1 ms)</text>
+
+  <line x1="55" y1="402" x2="465" y2="402" stroke="#1e293b" stroke-width="1" />
+
+  <text x="55" y="426" fill="#94a3b8" font-family="sans-serif" font-size="12">Ticks Processed / Bar Count</text>
+  <text x="320" y="426" fill="#f8fafc" font-family="monospace" font-size="12">14,892 ticks / 248 bars</text>
+
+  <line x1="55" y1="439" x2="465" y2="439" stroke="#1e293b" stroke-width="1" />
+
+  <text x="55" y="463" fill="#94a3b8" font-family="sans-serif" font-size="12">Heartbeat Interval / Timeout</text>
+  <text x="320" y="463" fill="#f8fafc" font-family="monospace" font-size="12">10.0s / 30.0s</text>
+
+  <line x1="55" y1="476" x2="465" y2="476" stroke="#1e293b" stroke-width="1" />
+
+  <text x="55" y="500" fill="#94a3b8" font-family="sans-serif" font-size="12">Trading Signal Gate</text>
+  <rect x="320" y="486" width="130" height="22" rx="4" fill="#0c4a6e" stroke="#0284c7" stroke-width="1" />
+  <text x="328" y="501" fill="#38bdf8" font-family="monospace" font-size="10" font-weight="bold">SIGNALS_ENABLED</text>
+
+  <!-- Safeguard Box -->
+  <rect x="55" y="524" width="410" height="46" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1" />
+  <text x="70" y="542" fill="#fbbf24" font-family="monospace" font-size="10" font-weight="bold">STALE DATA WATCHDOG:</text>
+  <text x="70" y="558" fill="#94a3b8" font-family="sans-serif" font-size="11">If silence &gt; 30s: AUTO-PAUSE signals, preserve trailing stops, alert telemetry.</text>
+
+  <!-- Card 2: Bar Aggregator & Multi-Asset Synchronizer (Right) -->
+  <rect x="515" y="178" width="450" height="410" rx="8" fill="url(#panelGrad)" stroke="#334155" stroke-width="1" />
+  <text x="535" y="210" fill="#f8fafc" font-family="sans-serif" font-weight="600" font-size="16">Tick-to-Bar Aggregator &amp; Sync Buffer</text>
+
+  <!-- Aggregator Status -->
+  <rect x="535" y="226" width="410" height="150" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1" />
+  <text x="550" y="248" fill="#94a3b8" font-family="sans-serif" font-size="11">STREAMING SYNC STATUS (CURRENT WINDOW)</text>
+
+  <!-- Symbol 1 -->
+  <rect x="550" y="260" width="380" height="30" rx="4" fill="#1e293b" />
+  <text x="562" y="280" fill="#f8fafc" font-family="monospace" font-size="12" font-weight="bold">AAPL</text>
+  <text x="620" y="280" fill="#cbd5e1" font-family="monospace" font-size="11">O: 182.40  H: 182.85  L: 182.35  C: 182.72</text>
+  <text x="880" y="280" fill="#10b981" font-family="monospace" font-size="10" font-weight="bold">SYNCED</text>
+
+  <!-- Symbol 2 -->
+  <rect x="550" y="296" width="380" height="30" rx="4" fill="#1e293b" />
+  <text x="562" y="316" fill="#f8fafc" font-family="monospace" font-size="12" font-weight="bold">MSFT</text>
+  <text x="620" y="316" fill="#cbd5e1" font-family="monospace" font-size="11">O: 412.10  H: 413.05  L: 411.90  C: 412.80</text>
+  <text x="880" y="316" fill="#10b981" font-family="monospace" font-size="10" font-weight="bold">SYNCED</text>
+
+  <!-- Symbol 3 -->
+  <rect x="550" y="332" width="380" height="30" rx="4" fill="#1e293b" />
+  <text x="562" y="352" fill="#f8fafc" font-family="monospace" font-size="12" font-weight="bold">SPY </text>
+  <text x="620" y="352" fill="#cbd5e1" font-family="monospace" font-size="11">O: 504.20  H: 504.60  L: 504.15  C: 504.55</text>
+  <text x="880" y="352" fill="#10b981" font-family="monospace" font-size="10" font-weight="bold">SYNCED</text>
+
+  <!-- Feature Engine Pipeline Box -->
+  <text x="535" y="405" fill="#f8fafc" font-family="sans-serif" font-weight="600" font-size="14">Streaming Feature Pipeline</text>
+
+  <rect x="535" y="418" width="410" height="152" rx="6" fill="#0f172a" stroke="#334155" stroke-width="1" />
+  <text x="550" y="440" fill="#94a3b8" font-family="sans-serif" font-size="11">CALCULATED ONLINE INDICATORS (O(1) Incremental)</text>
+
+  <text x="550" y="465" fill="#cbd5e1" font-family="monospace" font-size="12">SMA(20): <tspan fill="#38bdf8">181.94</tspan>    EMA(50): <tspan fill="#38bdf8">180.82</tspan>    RSI(14): <tspan fill="#10b981">58.4</tspan></text>
+  <text x="550" y="492" fill="#cbd5e1" font-family="monospace" font-size="12">Spread Z-Score: <tspan fill="#a855f7">+1.42</tspan>    Realized Vol (20): <tspan fill="#fbbf24">14.2%</tspan></text>
+  <text x="550" y="519" fill="#cbd5e1" font-family="monospace" font-size="12">Tick Imbalance: <tspan fill="#10b981">+0.18</tspan>    Last Bar Time: <tspan fill="#94a3b8">15:59:00 UTC</tspan></text>
+
+  <rect x="550" y="534" width="380" height="24" rx="4" fill="#1e293b" />
+  <text x="560" y="550" fill="#10b981" font-family="monospace" font-size="10">✓ Multi-Asset Synchronizer: All 3 feeds aligned at timestamp 15:59:00</text>
+</svg>

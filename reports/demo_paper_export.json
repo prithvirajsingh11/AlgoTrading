@@ -1,0 +1,1038 @@
+{
+  "session": {
+    "session_id": "paper_db2e025b77",
+    "created_at": "2026-09-22T18:57:17.783347+00:00",
+    "started_at": null,
+    "stopped_at": null,
+    "dataset_id": "AAPL",
+    "symbols": [
+      "AAPL"
+    ],
+    "timeframe": "1d",
+    "strategy": "TimeSeriesMomentum",
+    "strategy_params": {
+      "lookback_period": 2,
+      "entry_threshold": 0.01,
+      "exit_threshold": -0.01
+    },
+    "provider": "rule_based",
+    "mode": "SYNTHETIC_STREAM",
+    "data_provider_type": "SYNTHETIC",
+    "safety_state": "SIGNALS_ENABLED",
+    "max_data_age_seconds": 15.0,
+    "last_data_timestamp": "2026-09-23T10:01:35+00:00",
+    "last_receive_timestamp": null,
+    "latency_ms": null,
+    "connection_state": "CONNECTED",
+    "reconnect_count": 0,
+    "is_stale": false,
+    "bar_interval": "1m",
+    "decision_source": "RULE_BASED",
+    "initial_capital": 100000.0,
+    "current_equity": 100722.75,
+    "cash": 80506.75,
+    "realized_pnl": 478.45,
+    "unrealized_pnl": 256.03,
+    "current_exposure": 0.2007,
+    "speed": "MAX",
+    "status": "CREATED",
+    "error_message": null,
+    "current_bar_index": 20,
+    "total_bars": 0,
+    "simulation_timestamp": "2026-09-23T10:01:35+00:00",
+    "seed": 42,
+    "jev_config": null,
+    "ml_config": null,
+    "execution_config": {
+      "commission_fixed": 1.0,
+      "commission_percent": 0.0005,
+      "slippage_bps": 5.0
+    },
+    "risk_config": {
+      "max_position_pct": 0.5,
+      "max_drawdown_limit": 0.3,
+      "allow_shorting": false,
+      "position_size_pct": 0.2
+    }
+  },
+  "summary": {
+    "initial_capital": 100000.0,
+    "current_equity": 100722.74514250002,
+    "net_profit": 722.75,
+    "return_pct": 0.72,
+    "realized_pnl": 478.44510249999985,
+    "unrealized_pnl": 256.0250000000015,
+    "total_trades": 1,
+    "total_orders": 3,
+    "total_bars_replayed": 20,
+    "status": "CREATED"
+  },
+  "equity_curve": [
+    {
+      "timestamp": "2026-09-23T10:00:00+00:00",
+      "equity": 100000.0,
+      "cash": 100000.0,
+      "realized_pnl": 0.0,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "timestamp": "2026-09-23T10:00:05+00:00",
+      "equity": 100000.0,
+      "cash": 100000.0,
+      "realized_pnl": 0.0,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "timestamp": "2026-09-23T10:00:10+00:00",
+      "equity": 100000.0,
+      "cash": 100000.0,
+      "realized_pnl": 0.0,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "timestamp": "2026-09-23T10:00:15+00:00",
+      "equity": 99979.1050275,
+      "cash": 80089.1050275,
+      "realized_pnl": 0.0,
+      "unrealized_pnl": -9.9450000000013
+    },
+    {
+      "timestamp": "2026-09-23T10:00:20+00:00",
+      "equity": 100369.1050275,
+      "cash": 80089.1050275,
+      "realized_pnl": 0.0,
+      "unrealized_pnl": 380.0549999999987
+    },
+    {
+      "timestamp": "2026-09-23T10:00:25+00:00",
+      "equity": 100629.1050275,
+      "cash": 80089.1050275,
+      "realized_pnl": 0.0,
+      "unrealized_pnl": 640.0549999999987
+    },
+    {
+      "timestamp": "2026-09-23T10:00:30+00:00",
+      "equity": 100889.1050275,
+      "cash": 80089.1050275,
+      "realized_pnl": 0.0,
+      "unrealized_pnl": 900.0549999999987
+    },
+    {
+      "timestamp": "2026-09-23T10:00:35+00:00",
+      "equity": 101149.1050275,
+      "cash": 80089.1050275,
+      "realized_pnl": 0.0,
+      "unrealized_pnl": 1160.0549999999987
+    },
+    {
+      "timestamp": "2026-09-23T10:00:40+00:00",
+      "equity": 100889.1050275,
+      "cash": 80089.1050275,
+      "realized_pnl": 0.0,
+      "unrealized_pnl": 900.0549999999987
+    },
+    {
+      "timestamp": "2026-09-23T10:00:45+00:00",
+      "equity": 100477.70013000001,
+      "cash": 100477.70013000001,
+      "realized_pnl": 478.44510249999985,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "timestamp": "2026-09-23T10:00:50+00:00",
+      "equity": 100477.70013000001,
+      "cash": 100477.70013000001,
+      "realized_pnl": 478.44510249999985,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "timestamp": "2026-09-23T10:00:55+00:00",
+      "equity": 100477.70013000001,
+      "cash": 100477.70013000001,
+      "realized_pnl": 478.44510249999985,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "timestamp": "2026-09-23T10:01:00+00:00",
+      "equity": 100477.70013000001,
+      "cash": 100477.70013000001,
+      "realized_pnl": 478.44510249999985,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "timestamp": "2026-09-23T10:01:05+00:00",
+      "equity": 100477.70013000001,
+      "cash": 100477.70013000001,
+      "realized_pnl": 478.44510249999985,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "timestamp": "2026-09-23T10:01:10+00:00",
+      "equity": 100456.74514250002,
+      "cash": 80506.74514250002,
+      "realized_pnl": 478.44510249999985,
+      "unrealized_pnl": -9.974999999998488
+    },
+    {
+      "timestamp": "2026-09-23T10:01:15+00:00",
+      "equity": 100589.74514250002,
+      "cash": 80506.74514250002,
+      "realized_pnl": 478.44510249999985,
+      "unrealized_pnl": 123.02500000000151
+    },
+    {
+      "timestamp": "2026-09-23T10:01:20+00:00",
+      "equity": 100722.74514250002,
+      "cash": 80506.74514250002,
+      "realized_pnl": 478.44510249999985,
+      "unrealized_pnl": 256.0250000000015
+    },
+    {
+      "timestamp": "2026-09-23T10:01:25+00:00",
+      "equity": 100722.74514250002,
+      "cash": 80506.74514250002,
+      "realized_pnl": 478.44510249999985,
+      "unrealized_pnl": 256.0250000000015
+    },
+    {
+      "timestamp": "2026-09-23T10:01:30+00:00",
+      "equity": 100722.74514250002,
+      "cash": 80506.74514250002,
+      "realized_pnl": 478.44510249999985,
+      "unrealized_pnl": 256.0250000000015
+    },
+    {
+      "timestamp": "2026-09-23T10:01:35+00:00",
+      "equity": 100722.74514250002,
+      "cash": 80506.74514250002,
+      "realized_pnl": 478.44510249999985,
+      "unrealized_pnl": 256.0250000000015
+    }
+  ],
+  "trades": [
+    {
+      "trade_id": "bd42702e",
+      "symbol": "AAPL",
+      "side": "BUY",
+      "quantity": 130.0,
+      "entry_price": 153.0765,
+      "exit_price": 156.9215,
+      "entry_time": "2026-09-23T10:00:15+00:00",
+      "exit_time": "2026-09-23T10:00:45+00:00",
+      "commission": 11.1998975,
+      "slippage": 10.205,
+      "pnl": 478.44510249999985,
+      "pnl_percent": 0.0251181598743112,
+      "decision_source": "RULE_BASED",
+      "model_version": null,
+      "jev_mode": "NONE"
+    }
+  ],
+  "orders": [
+    {
+      "order_id": "ord_a8217cee",
+      "session_id": "paper_db2e025b77",
+      "timestamp": "2026-09-23T10:00:15+00:00",
+      "symbol": "AAPL",
+      "side": "BUY",
+      "order_type": "MARKET",
+      "quantity": 130.0,
+      "requested_price": null,
+      "fill_price": 153.08,
+      "status": "FILLED",
+      "commission": 10.95,
+      "slippage": 9.945,
+      "rejection_reason": null,
+      "strategy_name": "TimeSeriesMomentum",
+      "provider": "rule_based",
+      "decision_source": "RULE_BASED",
+      "model_version": null,
+      "jev_mode": "NONE"
+    },
+    {
+      "order_id": "ord_b9c51484",
+      "session_id": "paper_db2e025b77",
+      "timestamp": "2026-09-23T10:00:45+00:00",
+      "symbol": "AAPL",
+      "side": "SELL",
+      "order_type": "MARKET",
+      "quantity": 130.0,
+      "requested_price": null,
+      "fill_price": 156.92,
+      "status": "FILLED",
+      "commission": 11.1999,
+      "slippage": 10.205,
+      "rejection_reason": null,
+      "strategy_name": "TimeSeriesMomentum",
+      "provider": "rule_based",
+      "decision_source": "RULE_BASED",
+      "model_version": null,
+      "jev_mode": "NONE"
+    },
+    {
+      "order_id": "ord_c07b7273",
+      "session_id": "paper_db2e025b77",
+      "timestamp": "2026-09-23T10:01:10+00:00",
+      "symbol": "AAPL",
+      "side": "BUY",
+      "order_type": "MARKET",
+      "quantity": 133.0,
+      "requested_price": null,
+      "fill_price": 150.07,
+      "status": "FILLED",
+      "commission": 10.98,
+      "slippage": 9.975,
+      "rejection_reason": null,
+      "strategy_name": "TimeSeriesMomentum",
+      "provider": "rule_based",
+      "decision_source": "RULE_BASED",
+      "model_version": null,
+      "jev_mode": "NONE"
+    }
+  ],
+  "events_sample": [
+    {
+      "timestamp": "2026-09-22T18:57:17.783347+00:00",
+      "event_type": "SESSION_CREATED",
+      "session_id": "paper_db2e025b77",
+      "status": "CREATED",
+      "current_bar": 0,
+      "total_bars": 0,
+      "message": "Paper trading session created and initialized."
+    },
+    {
+      "timestamp": "2026-09-23T10:00:00+00:00",
+      "event_type": "MARKET_BAR",
+      "session_id": "paper_db2e025b77",
+      "symbol": "AAPL",
+      "open": 149.8,
+      "high": 150.3,
+      "low": 149.7,
+      "close": 150.0,
+      "volume": 1000.0,
+      "bar_index": 1,
+      "total_bars": 0
+    },
+    {
+      "timestamp": "2026-09-23T10:00:00+00:00",
+      "event_type": "PORTFOLIO_SNAPSHOT",
+      "session_id": "paper_db2e025b77",
+      "total_equity": 100000.0,
+      "cash": 100000.0,
+      "realized_pnl": 0.0,
+      "unrealized_pnl": 0.0,
+      "current_exposure": 0.0,
+      "positions": {}
+    },
+    {
+      "timestamp": "2026-09-23T10:00:05+00:00",
+      "event_type": "MARKET_BAR",
+      "session_id": "paper_db2e025b77",
+      "symbol": "AAPL",
+      "open": 149.8,
+      "high": 150.3,
+      "low": 149.7,
+      "close": 150.0,
+      "volume": 1000.0,
+      "bar_index": 2,
+      "total_bars": 0
+    },
+    {
+      "timestamp": "2026-09-23T10:00:05+00:00",
+      "event_type": "PORTFOLIO_SNAPSHOT",
+      "session_id": "paper_db2e025b77",
+      "total_equity": 100000.0,
+      "cash": 100000.0,
+      "realized_pnl": 0.0,
+      "unrealized_pnl": 0.0,
+      "current_exposure": 0.0,
+      "positions": {}
+    },
+    {
+      "timestamp": "2026-09-23T10:00:10+00:00",
+      "event_type": "MARKET_BAR",
+      "session_id": "paper_db2e025b77",
+      "symbol": "AAPL",
+      "open": 149.8,
+      "high": 150.3,
+      "low": 149.7,
+      "close": 150.0,
+      "volume": 1000.0,
+      "bar_index": 3,
+      "total_bars": 0
+    },
+    {
+      "timestamp": "2026-09-23T10:00:10+00:00",
+      "event_type": "PORTFOLIO_SNAPSHOT",
+      "session_id": "paper_db2e025b77",
+      "total_equity": 100000.0,
+      "cash": 100000.0,
+      "realized_pnl": 0.0,
+      "unrealized_pnl": 0.0,
+      "current_exposure": 0.0,
+      "positions": {}
+    },
+    {
+      "timestamp": "2026-09-23T10:00:15+00:00",
+      "event_type": "MARKET_BAR",
+      "session_id": "paper_db2e025b77",
+      "symbol": "AAPL",
+      "open": 152.8,
+      "high": 153.3,
+      "low": 152.7,
+      "close": 153.0,
+      "volume": 1000.0,
+      "bar_index": 4,
+      "total_bars": 0
+    },
+    {
+      "timestamp": "2026-09-23T10:00:15+00:00",
+      "event_type": "STRATEGY_SIGNAL",
+      "session_id": "paper_db2e025b77",
+      "symbol": "AAPL",
+      "signal_type": "BUY",
+      "strength": 1.0,
+      "strategy_name": "TimeSeriesMomentum",
+      "provider": "rule_based",
+      "decision_source": "RULE_BASED",
+      "model_version": null,
+      "jev_decision_mode": "NONE",
+      "metadata": {
+        "momentum_return": 0.02,
+        "entry_threshold": 0.01,
+        "past_close": 150.0,
+        "stop_loss": null
+      }
+    },
+    {
+      "timestamp": "2026-09-23T10:00:15+00:00",
+      "event_type": "RISK_VALIDATION",
+      "session_id": "paper_db2e025b77",
+      "symbol": "AAPL",
+      "approved": true,
+      "reason": null,
+      "requested_qty": 130.0,
+      "approved_qty": 130.0
+    },
+    {
+      "timestamp": "2026-09-23T10:00:15+00:00",
+      "event_type": "ORDER_FILLED",
+      "session_id": "paper_db2e025b77",
+      "order_id": "ord_a8217cee",
+      "symbol": "AAPL",
+      "side": "BUY",
+      "quantity": 130.0,
+      "fill_price": 153.0765,
+      "commission": 10.9499725,
+      "slippage": 9.945
+    },
+    {
+      "timestamp": "2026-09-23T10:00:15+00:00",
+      "event_type": "PORTFOLIO_SNAPSHOT",
+      "session_id": "paper_db2e025b77",
+      "total_equity": 99979.11,
+      "cash": 80089.11,
+      "realized_pnl": 0.0,
+      "unrealized_pnl": -9.95,
+      "current_exposure": 0.1989,
+      "positions": {
+        "AAPL": {
+          "symbol": "AAPL",
+          "quantity": 130.0,
+          "avg_entry_price": 153.08,
+          "current_price": 153.0,
+          "market_value": 19890.0,
+          "unrealized_pnl": -9.95,
+          "unrealized_pnl_pct": -0.0005,
+          "direction": "LONG"
+        }
+      }
+    },
+    {
+      "timestamp": "2026-09-23T10:00:20+00:00",
+      "event_type": "MARKET_BAR",
+      "session_id": "paper_db2e025b77",
+      "symbol": "AAPL",
+      "open": 155.8,
+      "high": 156.3,
+      "low": 155.7,
+      "close": 156.0,
+      "volume": 1000.0,
+      "bar_index": 5,
+      "total_bars": 0
+    },
+    {
+      "timestamp": "2026-09-23T10:00:20+00:00",
+      "event_type": "PORTFOLIO_SNAPSHOT",
+      "session_id": "paper_db2e025b77",
+      "total_equity": 100369.11,
+      "cash": 80089.11,
+      "realized_pnl": 0.0,
+      "unrealized_pnl": 380.05,
+      "current_exposure": 0.2021,
+      "positions": {
+        "AAPL": {
+          "symbol": "AAPL",
+          "quantity": 130.0,
+          "avg_entry_price": 153.08,
+          "current_price": 156.0,
+          "market_value": 20280.0,
+          "unrealized_pnl": 380.05,
+          "unrealized_pnl_pct": 0.0191,
+          "direction": "LONG"
+        }
+      }
+    },
+    {
+      "timestamp": "2026-09-23T10:00:25+00:00",
+      "event_type": "MARKET_BAR",
+      "session_id": "paper_db2e025b77",
+      "symbol": "AAPL",
+      "open": 157.8,
+      "high": 158.3,
+      "low": 157.7,
+      "close": 158.0,
+      "volume": 1000.0,
+      "bar_index": 6,
+      "total_bars": 0
+    },
+    {
+      "timestamp": "2026-09-23T10:00:25+00:00",
+      "event_type": "PORTFOLIO_SNAPSHOT",
+      "session_id": "paper_db2e025b77",
+      "total_equity": 100629.11,
+      "cash": 80089.11,
+      "realized_pnl": 0.0,
+      "unrealized_pnl": 640.05,
+      "current_exposure": 0.2041,
+      "positions": {
+        "AAPL": {
+          "symbol": "AAPL",
+          "quantity": 130.0,
+          "avg_entry_price": 153.08,
+          "current_price": 158.0,
+          "market_value": 20540.0,
+          "unrealized_pnl": 640.05,
+          "unrealized_pnl_pct": 0.0322,
+          "direction": "LONG"
+        }
+      }
+    },
+    {
+      "timestamp": "2026-09-23T10:00:30+00:00",
+      "event_type": "MARKET_BAR",
+      "session_id": "paper_db2e025b77",
+      "symbol": "AAPL",
+      "open": 159.8,
+      "high": 160.3,
+      "low": 159.7,
+      "close": 160.0,
+      "volume": 1000.0,
+      "bar_index": 7,
+      "total_bars": 0
+    },
+    {
+      "timestamp": "2026-09-23T10:00:30+00:00",
+      "event_type": "PORTFOLIO_SNAPSHOT",
+      "session_id": "paper_db2e025b77",
+      "total_equity": 100889.11,
+      "cash": 80089.11,
+      "realized_pnl": 0.0,
+      "unrealized_pnl": 900.05,
+      "current_exposure": 0.2062,
+      "positions": {
+        "AAPL": {
+          "symbol": "AAPL",
+          "quantity": 130.0,
+          "avg_entry_price": 153.08,
+          "current_price": 160.0,
+          "market_value": 20800.0,
+          "unrealized_pnl": 900.05,
+          "unrealized_pnl_pct": 0.0452,
+          "direction": "LONG"
+        }
+      }
+    },
+    {
+      "timestamp": "2026-09-23T10:00:35+00:00",
+      "event_type": "MARKET_BAR",
+      "session_id": "paper_db2e025b77",
+      "symbol": "AAPL",
+      "open": 161.8,
+      "high": 162.3,
+      "low": 161.7,
+      "close": 162.0,
+      "volume": 1000.0,
+      "bar_index": 8,
+      "total_bars": 0
+    },
+    {
+      "timestamp": "2026-09-23T10:00:35+00:00",
+      "event_type": "PORTFOLIO_SNAPSHOT",
+      "session_id": "paper_db2e025b77",
+      "total_equity": 101149.11,
+      "cash": 80089.11,
+      "realized_pnl": 0.0,
+      "unrealized_pnl": 1160.05,
+      "current_exposure": 0.2082,
+      "positions": {
+        "AAPL": {
+          "symbol": "AAPL",
+          "quantity": 130.0,
+          "avg_entry_price": 153.08,
+          "current_price": 162.0,
+          "market_value": 21060.0,
+          "unrealized_pnl": 1160.05,
+          "unrealized_pnl_pct": 0.0583,
+          "direction": "LONG"
+        }
+      }
+    },
+    {
+      "timestamp": "2026-09-23T10:00:40+00:00",
+      "event_type": "MARKET_BAR",
+      "session_id": "paper_db2e025b77",
+      "symbol": "AAPL",
+      "open": 159.8,
+      "high": 160.3,
+      "low": 159.7,
+      "close": 160.0,
+      "volume": 1000.0,
+      "bar_index": 9,
+      "total_bars": 0
+    },
+    {
+      "timestamp": "2026-09-23T10:00:40+00:00",
+      "event_type": "PORTFOLIO_SNAPSHOT",
+      "session_id": "paper_db2e025b77",
+      "total_equity": 100889.11,
+      "cash": 80089.11,
+      "realized_pnl": 0.0,
+      "unrealized_pnl": 900.05,
+      "current_exposure": 0.2062,
+      "positions": {
+        "AAPL": {
+          "symbol": "AAPL",
+          "quantity": 130.0,
+          "avg_entry_price": 153.08,
+          "current_price": 160.0,
+          "market_value": 20800.0,
+          "unrealized_pnl": 900.05,
+          "unrealized_pnl_pct": 0.0452,
+          "direction": "LONG"
+        }
+      }
+    },
+    {
+      "timestamp": "2026-09-23T10:00:45+00:00",
+      "event_type": "MARKET_BAR",
+      "session_id": "paper_db2e025b77",
+      "symbol": "AAPL",
+      "open": 156.8,
+      "high": 157.3,
+      "low": 156.7,
+      "close": 157.0,
+      "volume": 1000.0,
+      "bar_index": 10,
+      "total_bars": 0
+    },
+    {
+      "timestamp": "2026-09-23T10:00:45+00:00",
+      "event_type": "STRATEGY_SIGNAL",
+      "session_id": "paper_db2e025b77",
+      "symbol": "AAPL",
+      "signal_type": "SELL",
+      "strength": 1.0,
+      "strategy_name": "TimeSeriesMomentum",
+      "provider": "rule_based",
+      "decision_source": "RULE_BASED",
+      "model_version": null,
+      "jev_decision_mode": "NONE",
+      "metadata": {
+        "momentum_return": -0.0309,
+        "exit_threshold": -0.01,
+        "past_close": 162.0
+      }
+    },
+    {
+      "timestamp": "2026-09-23T10:00:45+00:00",
+      "event_type": "RISK_VALIDATION",
+      "session_id": "paper_db2e025b77",
+      "symbol": "AAPL",
+      "approved": true,
+      "reason": null,
+      "requested_qty": 130.0,
+      "approved_qty": 130.0
+    },
+    {
+      "timestamp": "2026-09-23T10:00:45+00:00",
+      "event_type": "ORDER_FILLED",
+      "session_id": "paper_db2e025b77",
+      "order_id": "ord_b9c51484",
+      "symbol": "AAPL",
+      "side": "SELL",
+      "quantity": 130.0,
+      "fill_price": 156.9215,
+      "commission": 11.1998975,
+      "slippage": 10.205
+    },
+    {
+      "timestamp": "2026-09-23T10:00:45+00:00",
+      "event_type": "PORTFOLIO_SNAPSHOT",
+      "session_id": "paper_db2e025b77",
+      "total_equity": 100477.7,
+      "cash": 100477.7,
+      "realized_pnl": 478.45,
+      "unrealized_pnl": 0.0,
+      "current_exposure": 0.0,
+      "positions": {}
+    },
+    {
+      "timestamp": "2026-09-23T10:00:50+00:00",
+      "event_type": "MARKET_BAR",
+      "session_id": "paper_db2e025b77",
+      "symbol": "AAPL",
+      "open": 152.8,
+      "high": 153.3,
+      "low": 152.7,
+      "close": 153.0,
+      "volume": 1000.0,
+      "bar_index": 11,
+      "total_bars": 0
+    },
+    {
+      "timestamp": "2026-09-23T10:00:50+00:00",
+      "event_type": "PORTFOLIO_SNAPSHOT",
+      "session_id": "paper_db2e025b77",
+      "total_equity": 100477.7,
+      "cash": 100477.7,
+      "realized_pnl": 478.45,
+      "unrealized_pnl": 0.0,
+      "current_exposure": 0.0,
+      "positions": {}
+    },
+    {
+      "timestamp": "2026-09-23T10:00:55+00:00",
+      "event_type": "MARKET_BAR",
+      "session_id": "paper_db2e025b77",
+      "symbol": "AAPL",
+      "open": 149.8,
+      "high": 150.3,
+      "low": 149.7,
+      "close": 150.0,
+      "volume": 1000.0,
+      "bar_index": 12,
+      "total_bars": 0
+    },
+    {
+      "timestamp": "2026-09-23T10:00:55+00:00",
+      "event_type": "PORTFOLIO_SNAPSHOT",
+      "session_id": "paper_db2e025b77",
+      "total_equity": 100477.7,
+      "cash": 100477.7,
+      "realized_pnl": 478.45,
+      "unrealized_pnl": 0.0,
+      "current_exposure": 0.0,
+      "positions": {}
+    },
+    {
+      "timestamp": "2026-09-23T10:01:00+00:00",
+      "event_type": "MARKET_BAR",
+      "session_id": "paper_db2e025b77",
+      "symbol": "AAPL",
+      "open": 147.8,
+      "high": 148.3,
+      "low": 147.7,
+      "close": 148.0,
+      "volume": 1000.0,
+      "bar_index": 13,
+      "total_bars": 0
+    },
+    {
+      "timestamp": "2026-09-23T10:01:00+00:00",
+      "event_type": "PORTFOLIO_SNAPSHOT",
+      "session_id": "paper_db2e025b77",
+      "total_equity": 100477.7,
+      "cash": 100477.7,
+      "realized_pnl": 478.45,
+      "unrealized_pnl": 0.0,
+      "current_exposure": 0.0,
+      "positions": {}
+    },
+    {
+      "timestamp": "2026-09-23T10:01:05+00:00",
+      "event_type": "MARKET_BAR",
+      "session_id": "paper_db2e025b77",
+      "symbol": "AAPL",
+      "open": 148.8,
+      "high": 149.3,
+      "low": 148.7,
+      "close": 149.0,
+      "volume": 1000.0,
+      "bar_index": 14,
+      "total_bars": 0
+    },
+    {
+      "timestamp": "2026-09-23T10:01:05+00:00",
+      "event_type": "PORTFOLIO_SNAPSHOT",
+      "session_id": "paper_db2e025b77",
+      "total_equity": 100477.7,
+      "cash": 100477.7,
+      "realized_pnl": 478.45,
+      "unrealized_pnl": 0.0,
+      "current_exposure": 0.0,
+      "positions": {}
+    },
+    {
+      "timestamp": "2026-09-23T10:01:10+00:00",
+      "event_type": "MARKET_BAR",
+      "session_id": "paper_db2e025b77",
+      "symbol": "AAPL",
+      "open": 149.8,
+      "high": 150.3,
+      "low": 149.7,
+      "close": 150.0,
+      "volume": 1000.0,
+      "bar_index": 15,
+      "total_bars": 0
+    },
+    {
+      "timestamp": "2026-09-23T10:01:10+00:00",
+      "event_type": "STRATEGY_SIGNAL",
+      "session_id": "paper_db2e025b77",
+      "symbol": "AAPL",
+      "signal_type": "BUY",
+      "strength": 1.0,
+      "strategy_name": "TimeSeriesMomentum",
+      "provider": "rule_based",
+      "decision_source": "RULE_BASED",
+      "model_version": null,
+      "jev_decision_mode": "NONE",
+      "metadata": {
+        "momentum_return": 0.0135,
+        "entry_threshold": 0.01,
+        "past_close": 148.0,
+        "stop_loss": null
+      }
+    },
+    {
+      "timestamp": "2026-09-23T10:01:10+00:00",
+      "event_type": "RISK_VALIDATION",
+      "session_id": "paper_db2e025b77",
+      "symbol": "AAPL",
+      "approved": true,
+      "reason": null,
+      "requested_qty": 133.0,
+      "approved_qty": 133.0
+    },
+    {
+      "timestamp": "2026-09-23T10:01:10+00:00",
+      "event_type": "ORDER_FILLED",
+      "session_id": "paper_db2e025b77",
+      "order_id": "ord_c07b7273",
+      "symbol": "AAPL",
+      "side": "BUY",
+      "quantity": 133.0,
+      "fill_price": 150.075,
+      "commission": 10.9799875,
+      "slippage": 9.975
+    },
+    {
+      "timestamp": "2026-09-23T10:01:10+00:00",
+      "event_type": "PORTFOLIO_SNAPSHOT",
+      "session_id": "paper_db2e025b77",
+      "total_equity": 100456.75,
+      "cash": 80506.75,
+      "realized_pnl": 478.45,
+      "unrealized_pnl": -9.97,
+      "current_exposure": 0.1986,
+      "positions": {
+        "AAPL": {
+          "symbol": "AAPL",
+          "quantity": 133.0,
+          "avg_entry_price": 150.07,
+          "current_price": 150.0,
+          "market_value": 19950.0,
+          "unrealized_pnl": -9.97,
+          "unrealized_pnl_pct": -0.0005,
+          "direction": "LONG"
+        }
+      }
+    },
+    {
+      "timestamp": "2026-09-23T10:01:15+00:00",
+      "event_type": "MARKET_BAR",
+      "session_id": "paper_db2e025b77",
+      "symbol": "AAPL",
+      "open": 150.8,
+      "high": 151.3,
+      "low": 150.7,
+      "close": 151.0,
+      "volume": 1000.0,
+      "bar_index": 16,
+      "total_bars": 0
+    },
+    {
+      "timestamp": "2026-09-23T10:01:15+00:00",
+      "event_type": "PORTFOLIO_SNAPSHOT",
+      "session_id": "paper_db2e025b77",
+      "total_equity": 100589.75,
+      "cash": 80506.75,
+      "realized_pnl": 478.45,
+      "unrealized_pnl": 123.03,
+      "current_exposure": 0.1997,
+      "positions": {
+        "AAPL": {
+          "symbol": "AAPL",
+          "quantity": 133.0,
+          "avg_entry_price": 150.07,
+          "current_price": 151.0,
+          "market_value": 20083.0,
+          "unrealized_pnl": 123.03,
+          "unrealized_pnl_pct": 0.0062,
+          "direction": "LONG"
+        }
+      }
+    },
+    {
+      "timestamp": "2026-09-23T10:01:20+00:00",
+      "event_type": "MARKET_BAR",
+      "session_id": "paper_db2e025b77",
+      "symbol": "AAPL",
+      "open": 151.8,
+      "high": 152.3,
+      "low": 151.7,
+      "close": 152.0,
+      "volume": 1000.0,
+      "bar_index": 17,
+      "total_bars": 0
+    },
+    {
+      "timestamp": "2026-09-23T10:01:20+00:00",
+      "event_type": "PORTFOLIO_SNAPSHOT",
+      "session_id": "paper_db2e025b77",
+      "total_equity": 100722.75,
+      "cash": 80506.75,
+      "realized_pnl": 478.45,
+      "unrealized_pnl": 256.03,
+      "current_exposure": 0.2007,
+      "positions": {
+        "AAPL": {
+          "symbol": "AAPL",
+          "quantity": 133.0,
+          "avg_entry_price": 150.07,
+          "current_price": 152.0,
+          "market_value": 20216.0,
+          "unrealized_pnl": 256.03,
+          "unrealized_pnl_pct": 0.0128,
+          "direction": "LONG"
+        }
+      }
+    },
+    {
+      "timestamp": "2026-09-23T10:01:25+00:00",
+      "event_type": "MARKET_BAR",
+      "session_id": "paper_db2e025b77",
+      "symbol": "AAPL",
+      "open": 151.8,
+      "high": 152.3,
+      "low": 151.7,
+      "close": 152.0,
+      "volume": 1000.0,
+      "bar_index": 18,
+      "total_bars": 0
+    },
+    {
+      "timestamp": "2026-09-23T10:01:25+00:00",
+      "event_type": "PORTFOLIO_SNAPSHOT",
+      "session_id": "paper_db2e025b77",
+      "total_equity": 100722.75,
+      "cash": 80506.75,
+      "realized_pnl": 478.45,
+      "unrealized_pnl": 256.03,
+      "current_exposure": 0.2007,
+      "positions": {
+        "AAPL": {
+          "symbol": "AAPL",
+          "quantity": 133.0,
+          "avg_entry_price": 150.07,
+          "current_price": 152.0,
+          "market_value": 20216.0,
+          "unrealized_pnl": 256.03,
+          "unrealized_pnl_pct": 0.0128,
+          "direction": "LONG"
+        }
+      }
+    },
+    {
+      "timestamp": "2026-09-23T10:01:30+00:00",
+      "event_type": "MARKET_BAR",
+      "session_id": "paper_db2e025b77",
+      "symbol": "AAPL",
+      "open": 151.8,
+      "high": 152.3,
+      "low": 151.7,
+      "close": 152.0,
+      "volume": 1000.0,
+      "bar_index": 19,
+      "total_bars": 0
+    },
+    {
+      "timestamp": "2026-09-23T10:01:30+00:00",
+      "event_type": "PORTFOLIO_SNAPSHOT",
+      "session_id": "paper_db2e025b77",
+      "total_equity": 100722.75,
+      "cash": 80506.75,
+      "realized_pnl": 478.45,
+      "unrealized_pnl": 256.03,
+      "current_exposure": 0.2007,
+      "positions": {
+        "AAPL": {
+          "symbol": "AAPL",
+          "quantity": 133.0,
+          "avg_entry_price": 150.07,
+          "current_price": 152.0,
+          "market_value": 20216.0,
+          "unrealized_pnl": 256.03,
+          "unrealized_pnl_pct": 0.0128,
+          "direction": "LONG"
+        }
+      }
+    },
+    {
+      "timestamp": "2026-09-23T10:01:35+00:00",
+      "event_type": "MARKET_BAR",
+      "session_id": "paper_db2e025b77",
+      "symbol": "AAPL",
+      "open": 151.8,
+      "high": 152.3,
+      "low": 151.7,
+      "close": 152.0,
+      "volume": 1000.0,
+      "bar_index": 20,
+      "total_bars": 0
+    },
+    {
+      "timestamp": "2026-09-23T10:01:35+00:00",
+      "event_type": "PORTFOLIO_SNAPSHOT",
+      "session_id": "paper_db2e025b77",
+      "total_equity": 100722.75,
+      "cash": 80506.75,
+      "realized_pnl": 478.45,
+      "unrealized_pnl": 256.03,
+      "current_exposure": 0.2007,
+      "positions": {
+        "AAPL": {
+          "symbol": "AAPL",
+          "quantity": 133.0,
+          "avg_entry_price": 150.07,
+          "current_price": 152.0,
+          "market_value": 20216.0,
+          "unrealized_pnl": 256.03,
+          "unrealized_pnl_pct": 0.0128,
+          "direction": "LONG"
+        }
+      }
+    }
+  ]
+}

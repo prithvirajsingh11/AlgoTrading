@@ -1,0 +1,105 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "name": "AlgoTrade Deterministic Portfolio Demo Configuration",
+  "version": "1.0.0",
+  "demo_label": "DEMO / SIMULATION — NO REAL MONEY",
+  "dataset": {
+    "dataset_id": "benchmark_single_asset",
+    "symbol": "AAPL",
+    "expected_bars": 5000,
+    "fallback_dataset_id": "AAPL_sample"
+  },
+  "backtest": {
+    "strategy": "TimeSeriesMomentum",
+    "parameters": {
+      "lookback_period": 20,
+      "holding_period": 5
+    },
+    "portfolio": {
+      "initial_capital": 100000.0
+    },
+    "execution": {
+      "commission_fixed": 1.0,
+      "commission_percent": 0.0005,
+      "slippage_bps": 5.0
+    },
+    "risk": {
+      "position_size_pct": 0.25,
+      "max_position_pct": 0.50,
+      "max_drawdown_limit": 0.25
+    }
+  },
+  "comparative_strategies": [
+    {
+      "name": "TimeSeriesMomentum",
+      "parameters": {
+        "lookback_period": 20,
+        "holding_period": 5
+      }
+    },
+    {
+      "name": "MeanReversion",
+      "parameters": {
+        "lookback_period": 20,
+        "entry_z_score": -1.5,
+        "exit_z_score": 0.0
+      }
+    },
+    {
+      "name": "MovingAverageCross",
+      "parameters": {
+        "fast_period": 10,
+        "slow_period": 30
+      }
+    }
+  ],
+  "ml": {
+    "model_type": "XGBoost",
+    "symbol": "AAPL",
+    "train_pct": 0.60,
+    "val_pct": 0.20,
+    "test_pct": 0.20,
+    "features": [
+      "returns_5",
+      "returns_20",
+      "volatility_20",
+      "rsi_14",
+      "sma_ratio_10_50"
+    ],
+    "target_horizon": 5,
+    "model_version": "v1.0.0"
+  },
+  "jev": {
+    "status_check_only": true,
+    "mock_demonstration_label": "MOCK / TEST PROVIDER",
+    "mock_context": {
+      "symbol": "AAPL",
+      "market_regime": "MOMENTUM_TRENDING",
+      "volatility_regime": "NORMAL",
+      "sharpe_trend": 0.52,
+      "model_confidence": 0.85
+    }
+  },
+  "paper_trading": {
+    "mode": "SYNTHETIC_STREAM",
+    "feed_tag": "⚡ SYNTHETIC TEST FEED",
+    "symbol": "AAPL",
+    "strategy": "TimeSeriesMomentum",
+    "initial_capital": 100000.0,
+    "steps": 20,
+    "risk_limits": {
+      "max_position_pct": 0.50,
+      "max_drawdown_limit": 0.25
+    },
+    "rejection_order": {
+      "symbol": "AAPL",
+      "excessive_quantity": 10000,
+      "expected_rejection_type": "Concentration limit exceeded"
+    }
+  },
+  "export": {
+    "reports_dir": "reports",
+    "session_export_filename": "demo_paper_export.json",
+    "trades_export_filename": "demo_paper_trades.csv"
+  }
+}

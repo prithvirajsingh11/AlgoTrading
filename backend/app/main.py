@@ -26,7 +26,7 @@ logger = logging.getLogger("algotrade")
 
 app = FastAPI(
     title=settings.project_name,
-    version="0.1.0",
+    version=settings.version,
     description="Realistic algorithmic trading research, backtesting, and paper-trading engine.",
     docs_url="/docs",
     redoc_url="/redoc",
@@ -89,6 +89,7 @@ def health_check():
     return {
         "status": "healthy",
         "service": "algotrade-backend",
+        "version": settings.version,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "project": settings.project_name,
         "environment": settings.environment,
@@ -143,6 +144,6 @@ def root():
     return {
         "message": "Welcome to AlgoTrade API",
         "docs_url": "/docs",
-        "version": "0.1.0",
+        "version": settings.version,
         "trading_mode": "SIMULATION_ONLY",
     }

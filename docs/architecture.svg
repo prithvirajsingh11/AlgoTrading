@@ -1,0 +1,192 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1200" width="100%" height="100%" style="background-color: #0b0f19; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <defs>
+    <linearGradient id="primaryGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="100%" stop-color="#1d4ed8" />
+    </linearGradient>
+    <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6" />
+      <stop offset="100%" stop-color="#6d28d9" />
+    </linearGradient>
+    <linearGradient id="emeraldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#047857" />
+    </linearGradient>
+    <linearGradient id="amberGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#b45309" />
+    </linearGradient>
+    <linearGradient id="roseGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ef4444" />
+      <stop offset="100%" stop-color="#b91c1c" />
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#64748b" />
+    </marker>
+    <marker id="arrowBlue" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#3b82f6" />
+    </marker>
+    <marker id="arrowEmerald" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#10b981" />
+    </marker>
+  </defs>
+
+  <!-- Title & Subtitle -->
+  <text x="500" y="45" text-anchor="middle" fill="#f8fafc" font-size="24" font-weight="700" letter-spacing="1">ALGOTRADE v1.0.0 — SYSTEM ARCHITECTURE</text>
+  <text x="500" y="70" text-anchor="middle" fill="#94a3b8" font-size="13">Quantitative Research, Discrete-Event Backtesting &amp; Real-Time Paper Trading</text>
+  
+  <!-- Safety Invariant Banner -->
+  <rect x="250" y="85" width="500" height="28" rx="4" fill="rgba(239, 68, 68, 0.15)" stroke="#ef4444" stroke-width="1" />
+  <text x="500" y="103" text-anchor="middle" fill="#ef4444" font-size="11" font-weight="600" letter-spacing="0.5">SIMULATION &amp; PAPER ONLY — ZERO LIVE BROKERAGE ORDER ENDPOINTS</text>
+
+  <!-- 1. Market Data Input (3 Distinct Modes) -->
+  <g id="market-data">
+    <rect x="100" y="135" width="800" height="105" rx="8" fill="url(#cardGrad)" stroke="#334155" stroke-width="1.5" />
+    <text x="120" y="160" fill="#38bdf8" font-size="14" font-weight="700">MARKET DATA INGESTION (3 STRICT OPERATIONAL MODES)</text>
+    
+    <!-- Mode 1: Historical -->
+    <rect x="120" y="175" width="230" height="50" rx="6" fill="#1e293b" stroke="#3b82f6" stroke-width="1" />
+    <text x="235" y="196" text-anchor="middle" fill="#60a5fa" font-size="12" font-weight="700">HISTORICAL REPLAY</text>
+    <text x="235" y="213" text-anchor="middle" fill="#94a3b8" font-size="10">Stored CSV/Parquet (Zero-Lookahead)</text>
+
+    <!-- Mode 2: Synthetic -->
+    <rect x="385" y="175" width="230" height="50" rx="6" fill="#1e293b" stroke="#f59e0b" stroke-width="1" />
+    <text x="500" y="196" text-anchor="middle" fill="#fbbf24" font-size="12" font-weight="700">SYNTHETIC STREAM</text>
+    <text x="500" y="213" text-anchor="middle" fill="#94a3b8" font-size="10">&#x26A1; Synthetic Test Feed (GBM Random Walk)</text>
+
+    <!-- Mode 3: Real-Time -->
+    <rect x="650" y="175" width="230" height="50" rx="6" fill="#1e293b" stroke="#10b981" stroke-width="1" />
+    <text x="765" y="196" text-anchor="middle" fill="#34d399" font-size="12" font-weight="700">REAL TIME (IEX / SIP)</text>
+    <text x="765" y="213" text-anchor="middle" fill="#94a3b8" font-size="10">Alpaca WS v2 (NOT_CONFIGURED fallback)</text>
+  </g>
+
+  <!-- Flow Arrow -->
+  <line x1="500" y1="240" x2="500" y2="270" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+
+  <!-- 2. Data Pipeline & Validation -->
+  <g id="data-pipeline">
+    <rect x="250" y="270" width="500" height="55" rx="8" fill="url(#cardGrad)" stroke="#334155" stroke-width="1.5" />
+    <text x="500" y="293" text-anchor="middle" fill="#f8fafc" font-size="14" font-weight="700">DATA PIPELINE &amp; INTEGRITY VALIDATION</text>
+    <text x="500" y="312" text-anchor="middle" fill="#94a3b8" font-size="11">Non-Throwing DatasetValidator | Chronological Sorting | BarBuilder Aggregation</text>
+  </g>
+
+  <!-- Flow Arrow -->
+  <line x1="500" y1="325" x2="500" y2="355" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+
+  <!-- 3. Streaming Feature Engine -->
+  <g id="feature-engine">
+    <rect x="250" y="355" width="500" height="55" rx="8" fill="url(#cardGrad)" stroke="#3b82f6" stroke-width="1.5" />
+    <text x="500" y="378" text-anchor="middle" fill="#60a5fa" font-size="14" font-weight="700">STREAMING FEATURE ENGINE</text>
+    <text x="500" y="397" text-anchor="middle" fill="#94a3b8" font-size="11">O(1) Bounded Ring Buffers (deque) | SnapshotSynchronizer (max_desync_seconds)</text>
+  </g>
+
+  <!-- Branch Arrows to Strategies -->
+  <path d="M 500 410 L 500 435 L 235 435 L 235 455" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+  <path d="M 500 410 L 500 455" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+  <path d="M 500 410 L 500 435 L 765 435 L 765 455" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+
+  <!-- 4. Multi-Paradigm Quantitative Strategy Layer -->
+  <g id="strategy-layer">
+    <!-- Rule Strategies -->
+    <rect x="120" y="455" width="230" height="75" rx="8" fill="url(#cardGrad)" stroke="#38bdf8" stroke-width="1.5" />
+    <text x="235" y="478" text-anchor="middle" fill="#38bdf8" font-size="13" font-weight="700">RULE-BASED STRATEGIES</text>
+    <text x="235" y="497" text-anchor="middle" fill="#e2e8f0" font-size="11">MovingAverageCross</text>
+    <text x="235" y="513" text-anchor="middle" fill="#94a3b8" font-size="10">TimeSeriesMomentum | Pairs Coint</text>
+
+    <!-- XGBoost ML -->
+    <rect x="385" y="455" width="230" height="75" rx="8" fill="url(#cardGrad)" stroke="#8b5cf6" stroke-width="1.5" />
+    <text x="500" y="478" text-anchor="middle" fill="#a78bfa" font-size="13" font-weight="700">XGBOOST ML ENGINE</text>
+    <text x="500" y="497" text-anchor="middle" fill="#e2e8f0" font-size="11">Purged Time-Series Split</text>
+    <text x="500" y="513" text-anchor="middle" fill="#94a3b8" font-size="10">Directional Probability | Feature Schema</text>
+
+    <!-- Jev AI Layer -->
+    <rect x="650" y="455" width="230" height="75" rx="8" fill="url(#cardGrad)" stroke="#ec4899" stroke-width="1.5" />
+    <text x="765" y="478" text-anchor="middle" fill="#f472b6" font-size="13" font-weight="700">JEV ADVISORY LAYER</text>
+    <text x="765" y="497" text-anchor="middle" fill="#e2e8f0" font-size="11">TypeSafe SystemOne API</text>
+    <text x="765" y="513" text-anchor="middle" fill="#94a3b8" font-size="10">SHA-256 Context Cache | Safe Fallback</text>
+  </g>
+
+  <!-- Convergence to Decision Layer -->
+  <path d="M 235 530 L 235 550 L 500 550 L 500 570" stroke="#64748b" stroke-width="2" fill="none" />
+  <path d="M 500 530 L 500 570" stroke="#64748b" stroke-width="2" fill="none" />
+  <path d="M 765 530 L 765 550 L 500 550 L 500 570" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+
+  <!-- 5. Decision Attribution Layer -->
+  <g id="decision-layer">
+    <rect x="250" y="570" width="500" height="55" rx="8" fill="url(#cardGrad)" stroke="#6366f1" stroke-width="1.5" />
+    <text x="500" y="593" text-anchor="middle" fill="#818cf8" font-size="14" font-weight="700">DECISION ATTRIBUTION LAYER</text>
+    <text x="500" y="612" text-anchor="middle" fill="#94a3b8" font-size="11">Tags: RULE_BASED | XGBOOST | JEV | JEV_ASSISTED + Model Checkpoints</text>
+  </g>
+
+  <!-- Flow Arrow -->
+  <line x1="500" y1="625" x2="500" y2="655" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+
+  <!-- 6. Authoritative Risk Engine -->
+  <g id="risk-engine">
+    <rect x="220" y="655" width="560" height="65" rx="8" fill="url(#cardGrad)" stroke="#ef4444" stroke-width="2" />
+    <text x="500" y="678" text-anchor="middle" fill="#f87171" font-size="14" font-weight="700">AUTHORITATIVE RISK ENGINE (PRE-TRADE GATE)</text>
+    <text x="500" y="697" text-anchor="middle" fill="#e2e8f0" font-size="11">Max Position Concentration (50%) | Portfolio Drawdown Circuit Breaker (25%)</text>
+    <text x="500" y="711" text-anchor="middle" fill="#94a3b8" font-size="10">Cash Adequacy Verification | Signal Safety Circuit: SIGNALS_ENABLED &lt;-&gt; SIGNALS_PAUSED</text>
+  </g>
+
+  <!-- Flow Arrow -->
+  <line x1="500" y1="720" x2="500" y2="750" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+
+  <!-- 7. Paper Broker Execution Engine -->
+  <g id="execution-engine">
+    <rect x="250" y="750" width="500" height="60" rx="8" fill="url(#cardGrad)" stroke="#10b981" stroke-width="1.5" />
+    <text x="500" y="773" text-anchor="middle" fill="#34d399" font-size="14" font-weight="700">SIMULATED BROKER (EXECUTION MODEL)</text>
+    <text x="500" y="793" text-anchor="middle" fill="#94a3b8" font-size="11">Realistic Bps Slippage | Dual-Tier Commission Schedule | Gap &amp; Intrabar Stop Cross</text>
+  </g>
+
+  <!-- Flow Arrow -->
+  <line x1="500" y1="810" x2="500" y2="840" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+
+  <!-- 8. Portfolio Accounting Engine -->
+  <g id="portfolio-engine">
+    <rect x="250" y="840" width="500" height="60" rx="8" fill="url(#cardGrad)" stroke="#3b82f6" stroke-width="1.5" />
+    <text x="500" y="863" text-anchor="middle" fill="#60a5fa" font-size="14" font-weight="700">PORTFOLIO &amp; LEDGER RECONCILIATION</text>
+    <text x="500" y="883" text-anchor="middle" fill="#94a3b8" font-size="11">Mark-to-Market Accounting | Realized vs Unrealized P&amp;L | Asymmetric Long/Short</text>
+  </g>
+
+  <!-- Branch to Research vs Live Events -->
+  <path d="M 500 900 L 500 925 L 300 925 L 300 945" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#arrowBlue)" />
+  <path d="M 500 900 L 500 925 L 700 925 L 700 945" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#arrowEmerald)" />
+
+  <!-- 9. Output Channels -->
+  <!-- Left: Research & Experiments -->
+  <g id="research-output">
+    <rect x="150" y="945" width="300" height="65" rx="8" fill="url(#cardGrad)" stroke="#3b82f6" stroke-width="1.5" />
+    <text x="300" y="968" text-anchor="middle" fill="#60a5fa" font-size="13" font-weight="700">RESEARCH &amp; STORAGE</text>
+    <text x="300" y="987" text-anchor="middle" fill="#e2e8f0" font-size="11">SQLite Persistence Ledger (WAL mode)</text>
+    <text x="300" y="1001" text-anchor="middle" fill="#94a3b8" font-size="10">JSON / CSV Exports | SHA-256 Reproducibility</text>
+  </g>
+
+  <!-- Right: Real-Time Telemetry & WebSocket -->
+  <g id="live-output">
+    <rect x="550" y="945" width="300" height="65" rx="8" fill="url(#cardGrad)" stroke="#10b981" stroke-width="1.5" />
+    <text x="700" y="968" text-anchor="middle" fill="#34d399" font-size="13" font-weight="700">LIVE WEBSOCKET STREAMING</text>
+    <text x="700" y="987" text-anchor="middle" fill="#e2e8f0" font-size="11">Asynchronous 100ms Backpressure Guard</text>
+    <text x="700" y="1001" text-anchor="middle" fill="#94a3b8" font-size="10">Ticks | BarClosed | OrderFilled | RiskReject</text>
+  </g>
+
+  <!-- Convergence to UI -->
+  <path d="M 300 1010 L 300 1040 L 500 1040 L 500 1060" stroke="#64748b" stroke-width="2" fill="none" />
+  <path d="M 700 1010 L 700 1040 L 500 1040 L 500 1060" stroke="#64748b" stroke-width="2" fill="none" marker-end="url(#arrow)" />
+
+  <!-- 10. React UI Console -->
+  <g id="react-ui">
+    <rect x="200" y="1060" width="600" height="85" rx="8" fill="url(#cardGrad)" stroke="#38bdf8" stroke-width="2" />
+    <text x="500" y="1085" text-anchor="middle" fill="#38bdf8" font-size="15" font-weight="700">INSTITUTIONAL REACT 18 / TYPESCRIPT CONSOLE</text>
+    <text x="500" y="1106" text-anchor="middle" fill="#e2e8f0" font-size="12">Dynamic Route Code-Splitting (171 KB core) | Strict UI ErrorBoundary</text>
+    <text x="500" y="1124" text-anchor="middle" fill="#94a3b8" font-size="11">Recharts Performance Blotters | 3-Way Mode Switcher | Decision Attribution Blotter</text>
+  </g>
+</svg>

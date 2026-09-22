@@ -797,6 +797,11 @@ class PaperTradingService:
         primary_sym = session.symbols[0]
         primary_bar = bars[primary_sym]
 
+        # Update StreamingFeatureEngine with current snapshot
+        feat_engine = self.feature_engines.get(session_id)
+        if feat_engine is not None and snapshot is not None:
+            feat_engine.update_snapshot(snapshot)
+
         # 2. Emit MarketEvent
         for sym, bar in bars.items():
             m_evt = MarketEvent(
@@ -1451,6 +1456,55 @@ class PaperTradingService:
             "orders": orders,
             "events_sample": events[-50:],
         }
+
+    def export_trades_csv(self, session_id: str) -> str:
+        """Exports session completed trades as CSV string."""
+        import csv
+        import io
+        data = self.export_results(session_id)
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow([
+            "trade_id", "symbol", "entry_time", "exit_time", "direction",
+            "quantity", "entry_price", "exit_price", "realized_pnl", "return_pct",
+            "exit_reason", "decision_source", "model_version", "jev_mode"
+        ])
+        for t in data.get("trades", []):
+            writer.writerow([
+                t.get("trade_id", ""),
+                t.get("symbol", ""),
+                t.get("entry_time", ""),
+                t.get("exit_time", ""),
+                t.get("direction", ""),
+                t.get("quantity", 0),
+                t.get("entry_price", 0.0),
+                t.get("exit_price", 0.0),
+                t.get("realized_pnl", 0.0),
+                t.get("return_pct", 0.0),
+                t.get("exit_reason", ""),
+                t.get("decision_source", "RULE_BASED"),
+                t.get("model_version", ""),
+                t.get("jev_mode", "NONE"),
+            ])
+        return output.getvalue()
+
+    def export_equity_csv(self, session_id: str) -> str:
+        """Exports session equity curve as CSV string."""
+        import csv
+        import io
+        data = self.export_results(session_id)
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["timestamp", "equity", "cash", "realized_pnl", "unrealized_pnl"])
+        for eq in data.get("equity_curve", []):
+            writer.writerow([
+                eq.get("timestamp", ""),
+                eq.get("equity", 0.0),
+                eq.get("cash", 0.0),
+                eq.get("realized_pnl", 0.0),
+                eq.get("unrealized_pnl", 0.0),
+            ])
+        return output.getvalue()
 
     def _get_required_session(self, session_id: str) -> PaperTradingSession:
         sess = self.get_session(session_id)

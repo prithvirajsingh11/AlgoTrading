@@ -112,7 +112,7 @@ export const Layout: React.FC<LayoutProps> = ({
               ALGOTRADE
             </span>
             <span style={{ fontSize: "0.65rem", color: "var(--text-muted)", border: "1px solid var(--border-strong)", padding: "0.1rem 0.35rem", borderRadius: "3px" }}>
-              RESEARCH v0.1
+              v1.0.0
             </span>
           </div>
 

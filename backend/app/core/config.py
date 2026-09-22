@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     )
 
     project_name: str = "AlgoTrade — ML-Enhanced Algorithmic Trading & Backtesting Platform"
+    version: str = "1.0.0"
     api_v1_str: str = "/api/v1"
     environment: str = "development"
     debug: bool = True

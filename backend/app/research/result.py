@@ -95,3 +95,86 @@ class ExperimentResult:
     @classmethod
     def from_json(cls, json_str: str) -> ExperimentResult:
         return cls.from_dict(json.loads(json_str))
+
+    def to_markdown(self) -> str:
+        """Generates a clean, reproducible markdown report for institutional evaluation."""
+        m = self.metrics or {}
+        cfg = self.config or {}
+        ds_cfg = cfg.get("dataset", {})
+        strat_cfg = cfg.get("strategy", {})
+        exec_cfg = cfg.get("execution", {})
+        risk_cfg = cfg.get("risk", {})
+        port_cfg = cfg.get("portfolio", {})
+        stats = self.execution_statistics or {}
+
+        lines = [
+            f"# Quantitative Research Experiment Report: `{self.experiment_id}`",
+            "",
+            "> **Institutional Notice**: This experiment was executed within AlgoTrade's discrete-event simulation engine. All trades are simulated with modeled transaction costs and zero lookahead bias. Zero live brokerage connections or real monetary orders.",
+            "",
+            "## 1. Experiment Overview & Reproducibility",
+            "",
+            f"- **Experiment ID**: `{self.experiment_id}`",
+            f"- **Reproducibility Hash (SHA-256)**: `{self.configuration_hash}`",
+            f"- **Execution Date**: `{self.created_at}`",
+            f"- **Runtime**: `{stats.get('runtime_ms', 0):.2f} ms`",
+            f"- **Total Bars Processed**: `{stats.get('total_bars', 0)}`",
+            "",
+            "## 2. Research Configuration & Execution Assumptions",
+            "",
+            "### Dataset & Strategy",
+            f"- **Dataset**: `{ds_cfg.get('dataset_id', 'Unknown')}`",
+            f"- **Symbols**: `{', '.join(ds_cfg.get('symbols', ['Unknown']))}`",
+            f"- **Strategy**: `{strat_cfg.get('name', 'Unknown')}`",
+            f"- **Parameters**: `{json.dumps(strat_cfg.get('parameters', {}))}`",
+            "",
+            "### Portfolio & Execution Mechanics",
+            f"- **Initial Capital**: `${port_cfg.get('initial_capital', 100000.0):,.2f}`",
+            f"- **Fixed Commission**: `${exec_cfg.get('commission_fixed', 0.0):.2f}` per fill",
+            f"- **Percentage Commission**: `{exec_cfg.get('commission_percent', 0.0) * 10000:.1f} bps`",
+            f"- **Execution Slippage**: `{exec_cfg.get('slippage_bps', 0.0):.1f} bps`",
+            "",
+            "### Risk & Concentration Limits",
+            f"- **Position Sizing**: `{risk_cfg.get('position_size_pct', 0.20):.1%} of equity`",
+            f"- **Maximum Concentration**: `{risk_cfg.get('max_position_pct', 0.50):.1%}`",
+            f"- **Max Drawdown Circuit Breaker**: `{risk_cfg.get('max_drawdown_limit', 0.25):.1%}`",
+            "",
+            "## 3. Quantitative Performance Metrics",
+            "",
+            "| Metric | Value |",
+            "| :--- | :--- |",
+            f"| **Total Return** | `{m.get('total_return', 0.0):.2%}` |",
+            f"| **Annualized Return** | `{m.get('annualized_return', 0.0):.2%}` |",
+            f"| **Sharpe Ratio** | `{m.get('sharpe_ratio', 0.0):.4f}` |",
+            f"| **Sortino Ratio** | `{m.get('sortino_ratio', 0.0):.4f}` |",
+            f"| **Max Drawdown** | `{m.get('maximum_drawdown', 0.0):.2%}` |",
+            f"| **Win Rate** | `{m.get('win_rate', 0.0):.2%}` |",
+            f"| **Profit Factor** | `{m.get('profit_factor', 0.0):.2f}` |",
+            f"| **Executed Trades** | `{stats.get('trade_count', len(self.trade_records))}` |",
+            "",
+            "## 4. Trade Execution Blotter Summary",
+            "",
+        ]
+
+        if self.trade_records:
+            lines.append("| Timestamp | Symbol | Side | Quantity | Price | P&L |")
+            lines.append("| :--- | :--- | :--- | :--- | :--- | :--- |")
+            for t in self.trade_records[:15]:
+                ts = t.get("timestamp", "")[:19]
+                sym = t.get("symbol", "")
+                side = t.get("side", "")
+                q = t.get("quantity", 0)
+                p = t.get("price", t.get("fill_price", 0.0))
+                pnl = t.get("pnl", 0.0)
+                lines.append(f"| {ts} | {sym} | {side} | {q} | ${p:.2f} | ${pnl:+.2f} |")
+            if len(self.trade_records) > 15:
+                lines.append(f"\n*(Truncated: {len(self.trade_records)} total trades)*")
+        else:
+            lines.append("*No trades triggered during this simulation interval.*")
+
+        if self.warnings:
+            lines.extend(["", "## 5. Experiment Warnings", ""])
+            for w in self.warnings:
+                lines.append(f"- ⚠️ {w}")
+
+        return "\n".join(lines) + "\n"
