@@ -69,6 +69,8 @@ class MarketTick:
         timestamp: Optional[datetime] = None,
         size: Optional[float] = None,
         received_timestamp: Optional[datetime] = None,
+        received_at: Optional[datetime] = None,
+        **kwargs,
     ):
         self.symbol = symbol
         now = datetime.now(timezone.utc)
@@ -83,7 +85,7 @@ class MarketTick:
             resolved_price = last_price if last_price is not None else (price if price is not None else size_or_price)
             resolved_vol = volume if volume is not None else size
         else:
-            self.received_timestamp = received_timestamp or now
+            self.received_timestamp = received_timestamp or received_at or now
             resolved_price = last_price if last_price is not None else (price if price is not None else (price_or_received if isinstance(price_or_received, (int, float)) else None))
             resolved_vol = volume if volume is not None else (size if size is not None else (size_or_price if isinstance(size_or_price, (int, float)) else None))
 
@@ -94,6 +96,14 @@ class MarketTick:
         self.ask_size = ask_size
         self.volume = resolved_vol
         self.source = source
+
+    @property
+    def received_at(self) -> datetime:
+        return self.received_timestamp
+
+    @property
+    def timestamp(self) -> datetime:
+        return self.exchange_timestamp
 
     @property
     def price(self) -> Optional[float]:

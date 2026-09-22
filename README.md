@@ -6,7 +6,7 @@
 [![React 18](https://img.shields.io/badge/React-18.3+-61DAFB.svg)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6+-3178C6.svg)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-5.4+-646CFF.svg)](https://vitejs.dev/)
-[![Tests](https://img.shields.io/badge/tests-170%20passed%20%7C%200%20failures-brightgreen.svg)](backend/tests)
+[![Tests](https://img.shields.io/badge/tests-218%20passed%20%7C%200%20failures-brightgreen.svg)](backend/tests)
 [![Code Splitting](https://img.shields.io/badge/bundle-code--split%20%28171%20KB%20core%29-emerald.svg)](frontend)
 
 **AlgoTrade** is an institutional-grade, full-stack quantitative research, event-driven backtesting, and paper-trading platform built from the ground up to showcase advanced computer science and financial engineering principles.
@@ -27,6 +27,7 @@
 | **Advisory AI Decision Layer** | Modular Jev AI integration via TypeSafe SystemOne structured queries. | Zero-lookahead quantitative context builder, SHA-256 cache, automatic fail-safe fallback to deterministic strategy rules. |
 | **Real-Time Paper Trading & Live Feeds** | Vendor-agnostic market data streaming with signal safety circuit breaker. | Multi-asset timestamp synchronizer (`max_desync_seconds`), O(1) bounded feature engine (`StreamingFeatureEngine`), strict safety state machine (`SIGNALS_ENABLED` $\leftrightarrow$ `SIGNALS_PAUSED`), zero credential leakage. |
 | **Production Engineering** | FastAPI backend with structured JSON logging, correlation IDs, and rate bounds. | Non-root Docker container (`appuser`), automated Docker healthchecks, React 18 error boundaries, and dynamic route code-splitting. |
+| **Benchmark Suite & Invariant Audits** | Automated performance benchmarking & AST architectural scanners. | Deterministic offline datasets (GBM seeded), throughput & latency benchmarking (`python -m backend.app.cli benchmark`), AST ban on live trading imports, bounded ring-buffer memory safety, and 218 passing automated tests. |
 
 ---
 
@@ -145,6 +146,38 @@ AlgoTrade features an institutional real-time market data streaming and paper-tr
 
 ---
 
+## System Benchmarking & Architectural Invariants (Phase 16)
+
+AlgoTrade includes automated microsecond-precision benchmarking tooling and AST-enforced architectural invariant verification:
+
+### 1. Deterministic Offline Datasets
+Seeded Geometric Brownian Motion (GBM) datasets in `data/demo/` for 100% reproducible offline benchmarking:
+- `data/demo/benchmark_single_asset.csv`: 5,000 bars (AAPL, continuous price path).
+- `data/demo/benchmark_multi_asset.csv`: 5,000 bars synchronized across AAPL, MSFT, and SPY.
+
+### 2. Microsecond Benchmarking Engine & CLI
+Run the automated benchmarking engine from the command line:
+```powershell
+python -m backend.app.cli benchmark --bars 500
+```
+Measures:
+- Dataset loading throughput (bars/sec)
+- Real-time tick aggregation into OHLCV bars
+- Streaming feature calculation latency (µs/bar)
+- Quantitative strategy signal evaluation throughput
+- Full event-driven backtesting execution throughput
+- Paper trading session replay step latency
+- WebSocket JSON serialization throughput
+- Peak memory consumption (via Python `tracemalloc`)
+
+### 3. Enforced Architectural Invariants
+- **AST Scan Guarantee (`test_paper_only_invariant.py`)**: Automatic static code analysis verifies zero live trading brokerage SDKs or live exchange endpoints exist across `backend/app/`. All order execution strictly targets `SimulatedBroker`.
+- **Three Mode Independence (`test_three_modes.py`)**: `HISTORICAL_REPLAY`, `SYNTHETIC_STREAM`, and `REAL_TIME` are structurally isolated. Unconfigured real-time credentials safely enter `NOT_CONFIGURED` without fallback to fake data or unexpected network probes.
+- **Memory Safety Bounds (`test_memory_safety.py`)**: Event rings are capped at 500 items, and bar aggregators evict finalized periods, preventing memory leakage during continuous runs.
+- **Crash Recovery & Concurrency (`test_recovery_restart.py`, `test_concurrency_lifecycle.py`)**: Sessions interrupted by server restarts safely hydrate to `PAUSED` state without phantom orders; rapid `start` / `pause` / `resume` / `stop` loops run leak-free.
+
+---
+
 ## Offline Quickstart Demo
 
 You can execute a full end-to-end demonstration of the platform 100% offline without starting servers or internet access:
@@ -247,7 +280,7 @@ docker compose up --build
 AlgoTrade is continuously verified using an automated test suite across all subsystems:
 
 ```powershell
-# Run backend test suite (170 unit & integration tests)
+# Run backend test suite (218 unit & integration tests)
 pytest backend/tests -v
 
 # Run frontend tests (Vitest)
@@ -256,12 +289,16 @@ npm test -- --run
 
 # Validate TypeScript compilation & production build
 npm run build
+
+# Run offline benchmark suite
+python -m backend.app.cli benchmark --bars 500
 ```
 
 **Verification Results:**
-- **Backend Tests**: 170 passed, 1 skipped (optional live Jev credentials), 0 failures, 0 unexpected warnings.
-- **Frontend Tests**: 6 passed, 0 failures.
+- **Backend Tests**: 218 passed, 1 skipped (optional live Jev credentials), 0 failures, 0 unexpected warnings.
+- **Frontend Tests**: 11 passed, 0 failures.
 - **TypeScript Build**: 0 type errors; modular code-split production bundle generated.
+- **Offline CLI Demo**: 4/4 stages passed cleanly (Exit: 0).
 
 ---
 

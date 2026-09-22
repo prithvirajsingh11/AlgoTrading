@@ -397,6 +397,9 @@ export interface MarketConnectionStatus {
   api_key_configured?: boolean;
 }
 
+export type SessionMode = "HISTORICAL_REPLAY" | "SYNTHETIC_STREAM" | "REAL_TIME";
+export type SignalSafetyState = "SIGNALS_ENABLED" | "SIGNALS_PAUSED";
+
 export interface ProviderStatusEvent {
   timestamp: string;
   event_type: "PROVIDER_STATUS";

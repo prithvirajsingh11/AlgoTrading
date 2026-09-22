@@ -310,12 +310,24 @@ def demo_command() -> int:
     return 0
 
 
+def benchmark_command(bars: int = 1000) -> int:
+    from backend.app.benchmark.runner import BenchmarkRunner
+    runner = BenchmarkRunner()
+    report = runner.run_all(bars_count=bars)
+    report.print_summary()
+    return 0
+
+
 def main(args: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="AlgoTrade Research Platform CLI")
     subparsers = parser.add_subparsers(dest="command", help="Available subcommands")
 
     # demo
     subparsers.add_parser("demo", help="Run comprehensive offline research & paper-trading demonstration")
+
+    # benchmark
+    bench_parser = subparsers.add_parser("benchmark", help="Run comprehensive software performance benchmarks")
+    bench_parser.add_argument("--bars", type=int, default=1000, help="Number of bars to process in throughput benchmarks (default: 1000)")
 
     # run-experiment
     run_parser = subparsers.add_parser("run-experiment", help="Execute an experiment from config file")
@@ -344,6 +356,8 @@ def main(args: Optional[list[str]] = None) -> int:
 
     if parsed.command == "demo":
         return demo_command()
+    elif parsed.command == "benchmark":
+        return benchmark_command(getattr(parsed, "bars", 1000))
     elif parsed.command == "run-experiment":
         return run_experiment_command(parsed.config)
     elif parsed.command == "list-datasets":

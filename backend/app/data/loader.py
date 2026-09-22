@@ -123,7 +123,8 @@ class CSVDataLoader:
         for col in ["open", "high", "low", "close", "volume"]:
             df[col] = pd.to_numeric(df[col], errors="coerce")
 
-        return df[self.STANDARD_COLUMNS]
+        cols = self.STANDARD_COLUMNS + (["symbol"] if "symbol" in df.columns else [])
+        return df[cols]
 
     @staticmethod
     def to_bars(df: pd.DataFrame, symbol: Optional[str] = None) -> List[OHLCVBar]:
