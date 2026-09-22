@@ -50,17 +50,66 @@ class Settings(BaseSettings):
     jev_min_confidence: float = 0.60
     jev_api_url: str = "https://api.typesafe.ai/v1/systemone"
 
-    # Real-Time Market Data Provider Configuration
-    live_data_provider: str = "mock"
-    live_data_api_url: Optional[str] = None
-    live_data_api_key: Optional[str] = None
-    live_data_api_secret: Optional[str] = None
-    live_data_symbols: List[str] = ["AAPL"]
-    live_data_max_data_age_seconds: float = 15.0
-    live_data_reconnect_max_attempts: int = 5
-    live_data_reconnect_backoff_factor: float = 1.5
-    live_data_heartbeat_interval: float = 5.0
-    live_data_max_desync_seconds: float = 5.0
+    # Real-Time Market Data Provider Configuration (Centralized)
+    market_data_provider: str = "mock"
+    market_data_api_key: Optional[str] = None
+    market_data_api_secret: Optional[str] = None
+    market_data_api_url: Optional[str] = None
+    market_data_symbols: List[str] = ["AAPL"]
+    market_data_timeout_seconds: float = 10.0
+    market_data_max_age_seconds: float = 15.0
+    market_data_reconnect_attempts: int = 5
+    market_data_reconnect_backoff_factor: float = 1.5
+    market_data_heartbeat_interval: float = 5.0
+    market_data_max_desync_seconds: float = 5.0
+    market_data_max_events_per_sec: int = 50
+    market_data_ws_queue_size: int = 200
+
+    # Alpaca Markets v2 Configuration
+    alpaca_api_key: Optional[str] = None
+    alpaca_secret_key: Optional[str] = None
+    alpaca_data_feed: str = "iex"
+
+    # Backward compatibility mappings for legacy live_data_* callers
+    @property
+    def live_data_provider(self) -> str:
+        return self.market_data_provider
+
+    @property
+    def live_data_api_url(self) -> Optional[str]:
+        return self.market_data_api_url
+
+    @property
+    def live_data_api_key(self) -> Optional[str]:
+        return self.market_data_api_key
+
+    @property
+    def live_data_api_secret(self) -> Optional[str]:
+        return self.market_data_api_secret
+
+    @property
+    def live_data_symbols(self) -> List[str]:
+        return self.market_data_symbols
+
+    @property
+    def live_data_max_data_age_seconds(self) -> float:
+        return self.market_data_max_age_seconds
+
+    @property
+    def live_data_reconnect_max_attempts(self) -> int:
+        return self.market_data_reconnect_attempts
+
+    @property
+    def live_data_reconnect_backoff_factor(self) -> float:
+        return self.market_data_reconnect_backoff_factor
+
+    @property
+    def live_data_heartbeat_interval(self) -> float:
+        return self.market_data_heartbeat_interval
+
+    @property
+    def live_data_max_desync_seconds(self) -> float:
+        return self.market_data_max_desync_seconds
 
 
 settings = Settings()

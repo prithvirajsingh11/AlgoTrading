@@ -79,12 +79,21 @@ def list_market_providers() -> List[Dict[str, Any]]:
         },
         {
             "id": "mock",
-            "name": "In-Memory Streaming (Test/Demo)",
+            "name": "In-Memory Streaming (Synthetic Test Feed)",
             "type": "streaming",
             "is_live": True,
-            "description": "Deterministic local real-time feed generator with latency & heartbeat tracking.",
+            "description": "Deterministic local synthetic stream generator with latency & heartbeat tracking. Explicitly labeled SYNTHETIC TEST FEED.",
             "requires_api_key": False,
             "status": "ready",
+        },
+        {
+            "id": "alpaca",
+            "name": "Alpaca Markets v2 (IEX Free / SIP)",
+            "type": "streaming",
+            "is_live": True,
+            "description": "Concrete external real-time WebSocket market data feed from Alpaca v2. Reads market data only; never accesses order API.",
+            "requires_api_key": True,
+            "status": "configured" if bool(settings.alpaca_api_key and settings.alpaca_secret_key) else "not_configured",
         },
         {
             "id": "websocket",
@@ -93,7 +102,7 @@ def list_market_providers() -> List[Dict[str, Any]]:
             "is_live": True,
             "description": "Configurable streaming WebSocket adapter for normalized live vendor feeds.",
             "requires_api_key": True,
-            "status": "configured" if settings.live_data_api_url else "unconfigured",
+            "status": "configured" if settings.market_data_api_url else "unconfigured",
         },
     ]
 
@@ -103,9 +112,9 @@ def get_market_status() -> Dict[str, Any]:
     """Returns current market data provider connection and health status."""
     from backend.app.paper.service import paper_service
 
-    # Check for active running real-time paper sessions
+    # Check for active running real-time or synthetic paper sessions
     for sid, sess in paper_service.sessions.items():
-        if sess.mode == "REAL_TIME" and sess.status.value == "RUNNING":
+        if sess.mode in ("REAL_TIME", "SYNTHETIC_STREAM") and sess.status.value == "RUNNING":
             prov = paper_service.providers.get(sid)
             if prov and hasattr(prov, "status"):
                 status_dict = prov.status.to_dict()
@@ -114,7 +123,7 @@ def get_market_status() -> Dict[str, Any]:
                 return status_dict
 
     return {
-        "provider": settings.live_data_provider,
+        "provider": settings.market_data_provider,
         "state": "DISCONNECTED",
         "connected": False,
         "subscribed_symbols": [],
@@ -124,6 +133,7 @@ def get_market_status() -> Dict[str, Any]:
         "latency_ms": None,
         "last_error": None,
         "safety_state": "SIGNALS_PAUSED",
+        "api_key_configured": bool(settings.alpaca_api_key and settings.alpaca_secret_key),
     }
 
 

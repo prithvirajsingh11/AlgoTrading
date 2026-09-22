@@ -110,29 +110,38 @@ Pairs trading and statistical arbitrage require simultaneous evaluation of multi
 
 ---
 
-## Real-Time Market Data & Live Paper Trading Pipeline
+## Real-Time Market Data & Live Paper Trading Pipeline (Phase 14 & 15)
 
 AlgoTrade features an institutional real-time market data streaming and paper-trading subsystem with strict safety invariants, vendor abstraction, and zero real-money path:
 
-### 1. Vendor-Agnostic Provider Architecture
-- **`BaseProviderAdapter` Interface**: Standardized async interface supporting lifecycle hooks (`connect`, `disconnect`, `subscribe`, `unsubscribe`, `poll`).
-- **`InMemoryStreamingAdapter`**: High-frequency offline/testing adapter generating realistic geometric random-walk ticks and quotes with controllable volatility, spreads, and latency.
-- **`GenericWebSocketAdapter`**: Production-ready WebSocket streaming adapter with auto-reconnect backoff (1s to 30s), heartbeat ping/pong, and message dispatch.
-- **Normalized Feed Schema**: Emits `MarketSnapshot` events with tick-level quote data (`bid`, `ask`, `@property mid`, `last_price`) and network latency telemetry (`received_at`, `latency_ms`).
+### 1. Three Distinct Operational Modes
+- **`HISTORICAL_REPLAY`**: Deterministic bar-by-bar backtest simulation using stored datasets with variable replay speeds (`1x` to `100x`). Zero lookahead bias.
+- **`SYNTHETIC_STREAM`**: High-frequency offline geometric random-walk streaming with controllable spreads and tick volatility. Explicitly tagged across telemetry and UI as `⚡ SYNTHETIC TEST FEED`.
+- **`REAL_TIME`**: Live market data feed via external adapters (e.g., Alpaca WebSocket v2). Strict invariant: zero synthetic data in `REAL_TIME` mode. Unconfigured credentials cleanly transition adapter to `NOT_CONFIGURED` without crashing or attempting unauthorized network connections.
 
-### 2. Temporal Synchronization & Streaming Features
-- **`SnapshotSynchronizer`**: Enforces multi-asset temporal alignment. If symbol timestamps diverge beyond `max_desync_seconds` (default 5.0s), the snapshot is quarantined to prevent cross-asset arbitrage race conditions.
+### 2. Concrete Provider & Tick-to-Bar Aggregation
+- **`AlpacaMarketDataAdapter`**: Concrete WebSocket v2 streaming client supporting IEX and SIP feeds with trade, quote, and minute bar subscription normalization into standard `MarketTick` payloads.
+- **`BarBuilder`**: Real-time tick aggregation into standard OHLCV bars across configurable intervals (`1s`, `1m`, `5m`, `15m`, `1h`). Performs boundary alignment and auto-finalization upon new interval boundary arrival or explicit flush.
+- **Normalized Market Data Schema**: Flexible `MarketTick` dataclass supporting both quote ticks (`bid`, `ask`, mid price calculation) and trade ticks (`price`, `size`), tracking network latency and exchange timestamps.
+
+### 3. Multi-Asset Synchronization & Streaming Features
+- **`SnapshotSynchronizer`**: Enforces cross-symbol temporal freshness. Computes per-symbol staleness; snapshots where any symbol age exceeds `max_desync_seconds` are quarantined to prevent cross-asset arbitrage race conditions.
 - **`StreamingFeatureEngine`**: Memory-bounded $O(1)$ incremental feature engine (bounded ring buffers / `collections.deque`). Calculates technical indicators (SMA, EMA, Returns, Realized Volatility) incrementally with guaranteed zero lookahead bias.
 
-### 3. Signal Safety State Machine
+### 4. Signal Safety State Machine & Asymmetric Position Protection
 - **State Transition Matrix**:
-  - `CONNECTED` + fresh data ($t_{\text{now}} - t_{\text{data}} \le \text{max\_data\_age}$) $\longrightarrow$ `SIGNALS_ENABLED` (all strategies execute normally).
-  - `STALE` ($t_{\text{now}} - t_{\text{data}} > \text{max\_data\_age}$), `DISCONNECTED`, or `ERROR` $\longrightarrow$ `SIGNALS_PAUSED` (new market/entry orders strictly rejected).
+  - `CONNECTED` + fresh data ($t_{\text{now}} - t_{\text{data}} \le \text{max\_data\_age}$) $\longrightarrow$ `SIGNALS_ENABLED` (strategies generate signals normally).
+  - `STALE` ($t_{\text{now}} - t_{\text{data}} > \text{max\_data\_age}$), `DISCONNECTED`, or `ERROR` $\longrightarrow$ `SIGNALS_PAUSED` (new market/entry signals strictly suppressed).
 - **Asymmetric Protection Invariant**: Existing stop-loss, take-profit, and liquidation orders continue to evaluate and fill against live quote ticks even when signals are paused, ensuring capital protection during network outages.
 
-### 4. Zero Credential Exposure & Institutional Security
+### 5. Decision Source Tracking & WebSocket Backpressure
+- **Decision Lineage**: Every emitted order and trade records its authoritative decision origin: `RULE_BASED`, `XGBOOST`, `JEV`, or `JEV_ASSISTED`, along with model checkpoint versions and Jev decision tokens.
+- **WebSocket Backpressure Protection**: Real-time telemetry broadcast enforces an asynchronous 100ms timeout per subscriber (`asyncio.wait_for(ws.send_json(payload), timeout=0.1)`), automatically unregistering slow or dropped consumers.
+
+### 6. Zero Credential Exposure & Institutional Security
 - Provider credentials (`api_key`, `api_secret`, auth tokens) are strictly stored in server environment variables or memory.
 - Health status endpoints (`/api/v1/market/status`, `/api/v1/market/providers`), WebSocket broadcasts, and CSV export ledgers emit redacted metadata only (`api_key_configured: bool`), never exposing raw secrets over the wire or in logs.
+- **Strict Invariant**: Zero live brokerage or live order placement path. All orders route exclusively to the internal `SimulatedBroker`.
 
 ---
 

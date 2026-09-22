@@ -77,7 +77,7 @@ export const PaperTradingPage: React.FC = () => {
   const [priceHistory, setPriceHistory] = useState<Array<{ timestamp: string; price: number; bid?: number; ask?: number }>>([]);
 
   // Real-time market data feed & health states
-  const [filterMode, setFilterMode] = useState<"ALL" | "HISTORICAL_REPLAY" | "REAL_TIME">("ALL");
+  const [filterMode, setFilterMode] = useState<"ALL" | "HISTORICAL_REPLAY" | "SYNTHETIC_STREAM" | "REAL_TIME">("ALL");
   const [providerStatus, setProviderStatus] = useState<MarketConnectionStatus | null>(null);
   const [marketProviders, setMarketProviders] = useState<MarketProviderInfo[]>([]);
 
@@ -97,9 +97,10 @@ export const PaperTradingPage: React.FC = () => {
   const [wsConnected, setWsConnected] = useState(false);
 
   // New session form state
-  const [formMode, setFormMode] = useState<"HISTORICAL_REPLAY" | "REAL_TIME">("HISTORICAL_REPLAY");
-  const [formLiveProvider, setFormLiveProvider] = useState<string>("mock");
+  const [formMode, setFormMode] = useState<"HISTORICAL_REPLAY" | "SYNTHETIC_STREAM" | "REAL_TIME">("HISTORICAL_REPLAY");
+  const [formLiveProvider, setFormLiveProvider] = useState<string>("alpaca");
   const [formSymbols, setFormSymbols] = useState<string>("AAPL");
+  const [formBarInterval, setFormBarInterval] = useState<string>("1m");
   const [formMaxDataAge, setFormMaxDataAge] = useState<number>(15);
   const [formDataset, setFormDataset] = useState("AAPL");
   const [formStrategy, setFormStrategy] = useState("MovingAverageCross");
@@ -403,12 +404,12 @@ export const PaperTradingPage: React.FC = () => {
         params = { lookback_period: 20, entry_threshold: 2.0, exit_threshold: 0.5 };
       }
 
-      const symList = formMode === "REAL_TIME"
+      const symList = formMode !== "HISTORICAL_REPLAY"
         ? formSymbols.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean)
         : [formDataset];
 
       const payload: CreatePaperSessionPayload = {
-        dataset_id: formMode === "REAL_TIME" ? (symList[0] || "AAPL") : formDataset,
+        dataset_id: formMode === "HISTORICAL_REPLAY" ? formDataset : (symList[0] || "AAPL"),
         symbols: symList.length > 0 ? symList : ["AAPL"],
         strategy: formStrategy,
         strategy_params: params,
@@ -416,8 +417,9 @@ export const PaperTradingPage: React.FC = () => {
         speed: formSpeed,
         allow_shorting: formShorting,
         mode: formMode,
-        data_provider: formMode === "REAL_TIME" ? "LIVE_PROVIDER" : "HISTORICAL",
-        live_provider: formMode === "REAL_TIME" ? formLiveProvider : undefined,
+        data_provider: formMode === "HISTORICAL_REPLAY" ? "HISTORICAL" : (formMode === "SYNTHETIC_STREAM" ? "SYNTHETIC_STREAM" : "LIVE_PROVIDER"),
+        live_provider: formMode === "REAL_TIME" ? formLiveProvider : (formMode === "SYNTHETIC_STREAM" ? "mock" : undefined),
+        bar_interval: formBarInterval,
         max_data_age_seconds: Number(formMaxDataAge) || 15.0,
       };
 
@@ -519,6 +521,23 @@ export const PaperTradingPage: React.FC = () => {
               Historical Replay
             </button>
             <button
+              onClick={() => setFilterMode("SYNTHETIC_STREAM")}
+              style={{
+                padding: "0.35rem 0.65rem",
+                fontSize: "0.75rem",
+                background: filterMode === "SYNTHETIC_STREAM" ? "var(--bg-card-hover)" : "var(--bg-surface)",
+                color: filterMode === "SYNTHETIC_STREAM" ? "var(--status-amber)" : "var(--text-secondary)",
+                borderRight: "1px solid var(--border-subtle)",
+                borderLeft: "none",
+                borderTop: "none",
+                borderBottom: "none",
+                cursor: "pointer",
+                fontWeight: filterMode === "SYNTHETIC_STREAM" ? 600 : 400,
+              }}
+            >
+              ⚡ Synthetic Stream
+            </button>
+            <button
               onClick={() => setFilterMode("REAL_TIME")}
               style={{
                 padding: "0.35rem 0.65rem",
@@ -545,7 +564,7 @@ export const PaperTradingPage: React.FC = () => {
               .filter((s) => filterMode === "ALL" || (s.mode || "HISTORICAL_REPLAY") === filterMode)
               .map((s) => (
                 <option key={s.session_id} value={s.session_id}>
-                  {s.session_id} ({s.mode === "REAL_TIME" ? "LIVE" : "HIST"} - {s.strategy})
+                  {s.session_id} ({s.mode === "REAL_TIME" ? "LIVE" : s.mode === "SYNTHETIC_STREAM" ? "SYNTH" : "HIST"} - {s.strategy})
                 </option>
               ))}
           </select>
@@ -563,8 +582,8 @@ export const PaperTradingPage: React.FC = () => {
       {/* Prominent Safety & Simulation Warning */}
       <div
         style={{
-          backgroundColor: session?.mode === "REAL_TIME" ? "rgba(234, 179, 8, 0.08)" : "rgba(239, 68, 68, 0.08)",
-          border: session?.mode === "REAL_TIME" ? "1px solid rgba(234, 179, 8, 0.3)" : "1px solid rgba(239, 68, 68, 0.3)",
+          backgroundColor: session?.mode === "REAL_TIME" ? "rgba(234, 179, 8, 0.08)" : session?.mode === "SYNTHETIC_STREAM" ? "rgba(168, 85, 247, 0.08)" : "rgba(239, 68, 68, 0.08)",
+          border: session?.mode === "REAL_TIME" ? "1px solid rgba(234, 179, 8, 0.3)" : session?.mode === "SYNTHETIC_STREAM" ? "1px solid rgba(168, 85, 247, 0.3)" : "1px solid rgba(239, 68, 68, 0.3)",
           borderRadius: "6px",
           padding: "0.875rem 1.25rem",
           display: "flex",
@@ -572,23 +591,27 @@ export const PaperTradingPage: React.FC = () => {
           gap: "1rem",
         }}
       >
-        <ShieldAlert size={26} style={{ color: session?.mode === "REAL_TIME" ? "var(--status-amber)" : "var(--status-red)", flexShrink: 0 }} />
+        <ShieldAlert size={26} style={{ color: session?.mode === "REAL_TIME" ? "var(--status-amber)" : session?.mode === "SYNTHETIC_STREAM" ? "#c084fc" : "var(--status-red)", flexShrink: 0 }} />
         <div>
-          <div style={{ fontWeight: 800, fontSize: "0.875rem", color: session?.mode === "REAL_TIME" ? "var(--status-amber)" : "var(--status-red)", letterSpacing: "0.04em" }}>
+          <div style={{ fontWeight: 800, fontSize: "0.875rem", color: session?.mode === "REAL_TIME" ? "var(--status-amber)" : session?.mode === "SYNTHETIC_STREAM" ? "#c084fc" : "var(--status-red)", letterSpacing: "0.04em" }}>
             {session?.mode === "REAL_TIME"
-              ? "PAPER TRADING — REAL-TIME MARKET DATA — NO REAL MONEY"
+              ? "PAPER TRADING — REAL-TIME MARKET DATA — NO REAL MONEY / BROKERAGE ORDERS"
+              : session?.mode === "SYNTHETIC_STREAM"
+              ? "PAPER TRADING — SYNTHETIC TEST FEED — LOCAL DETERMINISTIC SIMULATION"
               : "PAPER TRADING ENVIRONMENT — NO REAL MONEY"}
           </div>
           <div style={{ fontSize: "0.8125rem", color: "var(--text-secondary)", marginTop: "0.15rem" }}>
             {session?.mode === "REAL_TIME"
-              ? "Prices are fed from real-time market data providers. Zero real-money or brokerage execution. All order fills, positions, and risk rules terminate in SimulatedBroker."
+              ? "Prices are fed from real-time market data providers (e.g. Alpaca v2). Zero real-money or brokerage execution. All order fills, positions, and risk rules terminate in SimulatedBroker."
+              : session?.mode === "SYNTHETIC_STREAM"
+              ? "Market events are generated by local in-memory streaming simulator labeled SYNTHETIC TEST FEED. Zero external network calls."
               : "All orders, capital balances, and executions are strictly simulated in-memory. Brokerage API connections are disabled by architecture invariants."}
           </div>
         </div>
       </div>
 
-      {/* Real-Time Live Feed Telemetry Card */}
-      {session && session.mode === "REAL_TIME" && (
+      {/* Real-Time / Synthetic Feed Telemetry Card */}
+      {session && (session.mode === "REAL_TIME" || session.mode === "SYNTHETIC_STREAM") && (
         <div
           style={{
             backgroundColor: "var(--bg-surface)",
@@ -602,13 +625,15 @@ export const PaperTradingPage: React.FC = () => {
           }}
         >
           <div>
-            <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>LIVE DATA PROVIDER</div>
+            <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>FEED PROVIDER & MODE</div>
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.25rem" }}>
-              <Radio size={16} style={{ color: "var(--status-green)" }} />
-              <strong style={{ fontSize: "0.95rem" }}>{session.data_provider_type === "LIVE_PROVIDER" ? "In-Memory Live Stream" : session.provider}</strong>
+              <Radio size={16} style={{ color: session.mode === "SYNTHETIC_STREAM" ? "#c084fc" : "var(--status-green)" }} />
+              <strong style={{ fontSize: "0.95rem" }}>
+                {session.mode === "SYNTHETIC_STREAM" ? "SYNTHETIC TEST FEED" : (session.provider || "Alpaca Markets v2")}
+              </strong>
             </div>
             <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>
-              Symbols: <strong>{session.symbols.join(", ")}</strong>
+              Symbols: <strong>{session.symbols.join(", ")}</strong> | Bar: <strong>{session.bar_interval || "1m"}</strong>
             </div>
           </div>
 
@@ -620,7 +645,14 @@ export const PaperTradingPage: React.FC = () => {
                   width: "9px",
                   height: "9px",
                   borderRadius: "50%",
-                  backgroundColor: (providerStatus?.connected ?? true) ? "var(--status-green)" : "var(--status-red)",
+                  backgroundColor:
+                    providerStatus?.state === "NOT_CONFIGURED"
+                      ? "var(--status-red)"
+                      : providerStatus?.state === "STALE"
+                      ? "var(--status-amber)"
+                      : (providerStatus?.connected ?? true)
+                      ? "var(--status-green)"
+                      : "var(--status-red)",
                 }}
               />
               <span style={{ fontWeight: 700, fontSize: "0.875rem" }}>
@@ -629,6 +661,9 @@ export const PaperTradingPage: React.FC = () => {
             </div>
             <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>
               Reconnects: {providerStatus?.reconnect_count ?? 0}
+              {providerStatus?.api_key_configured === false && (
+                <span style={{ color: "var(--status-amber)", marginLeft: "0.5rem" }}>(API key missing)</span>
+              )}
             </div>
           </div>
 
@@ -666,7 +701,7 @@ export const PaperTradingPage: React.FC = () => {
               </span>
             </div>
             <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>
-              Max Data Age: {session.max_data_age_seconds ?? 15}s
+              Decision: <strong>{session.decision_source || "RULE_BASED"}</strong>
             </div>
           </div>
 
@@ -1098,6 +1133,7 @@ export const PaperTradingPage: React.FC = () => {
                         <th style={{ padding: "0.5rem" }}>FILL PRICE</th>
                         <th style={{ padding: "0.5rem" }}>COMM / SLIP</th>
                         <th style={{ padding: "0.5rem" }}>STATUS</th>
+                        <th style={{ padding: "0.5rem" }}>DECISION SOURCE</th>
                         <th style={{ padding: "0.5rem" }}>RISK / REJECTION REASON</th>
                       </tr>
                     </thead>
@@ -1120,6 +1156,30 @@ export const PaperTradingPage: React.FC = () => {
                               status={o.status}
                               variant={o.status === "FILLED" ? "green" : o.status === "REJECTED" ? "red" : "amber"}
                             />
+                          </td>
+                          <td style={{ padding: "0.6rem 0.5rem", fontSize: "0.75rem" }}>
+                            <span
+                              style={{
+                                padding: "0.15rem 0.4rem",
+                                borderRadius: "3px",
+                                fontWeight: 600,
+                                backgroundColor:
+                                  o.decision_source === "XGBOOST"
+                                    ? "rgba(59, 130, 246, 0.15)"
+                                    : o.decision_source === "JEV" || o.decision_source === "JEV_ASSISTED"
+                                    ? "rgba(168, 85, 247, 0.15)"
+                                    : "rgba(100, 116, 139, 0.15)",
+                                color:
+                                  o.decision_source === "XGBOOST"
+                                    ? "var(--accent-blue)"
+                                    : o.decision_source === "JEV" || o.decision_source === "JEV_ASSISTED"
+                                    ? "#c084fc"
+                                    : "var(--text-secondary)",
+                              }}
+                            >
+                              {o.decision_source || "RULE_BASED"}
+                              {o.model_version ? ` (${o.model_version})` : ""}
+                            </span>
                           </td>
                           <td style={{ padding: "0.6rem 0.5rem", fontSize: "0.75rem", color: o.rejection_reason ? "var(--status-red)" : "var(--text-muted)" }}>
                             {o.rejection_reason || "Passed risk validation"}
@@ -1303,14 +1363,14 @@ export const PaperTradingPage: React.FC = () => {
                 <label style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "block", marginBottom: "0.25rem" }}>
                   DATA FEED MODE
                 </label>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.4rem" }}>
                   <button
                     type="button"
                     onClick={() => setFormMode("HISTORICAL_REPLAY")}
                     style={{
-                      padding: "0.5rem",
+                      padding: "0.45rem 0.25rem",
                       borderRadius: "4px",
-                      fontSize: "0.75rem",
+                      fontSize: "0.72rem",
                       border: formMode === "HISTORICAL_REPLAY" ? "1px solid var(--accent-blue)" : "1px solid var(--border-subtle)",
                       background: formMode === "HISTORICAL_REPLAY" ? "var(--bg-card-hover)" : "var(--bg-surface)",
                       color: formMode === "HISTORICAL_REPLAY" ? "var(--accent-blue)" : "var(--text-secondary)",
@@ -1322,11 +1382,27 @@ export const PaperTradingPage: React.FC = () => {
                   </button>
                   <button
                     type="button"
+                    onClick={() => setFormMode("SYNTHETIC_STREAM")}
+                    style={{
+                      padding: "0.45rem 0.25rem",
+                      borderRadius: "4px",
+                      fontSize: "0.72rem",
+                      border: formMode === "SYNTHETIC_STREAM" ? "1px solid var(--status-amber)" : "1px solid var(--border-subtle)",
+                      background: formMode === "SYNTHETIC_STREAM" ? "var(--bg-card-hover)" : "var(--bg-surface)",
+                      color: formMode === "SYNTHETIC_STREAM" ? "var(--status-amber)" : "var(--text-secondary)",
+                      cursor: "pointer",
+                      fontWeight: formMode === "SYNTHETIC_STREAM" ? 600 : 400,
+                    }}
+                  >
+                    ⚡ Synthetic Feed
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setFormMode("REAL_TIME")}
                     style={{
-                      padding: "0.5rem",
+                      padding: "0.45rem 0.25rem",
                       borderRadius: "4px",
-                      fontSize: "0.75rem",
+                      fontSize: "0.72rem",
                       border: formMode === "REAL_TIME" ? "1px solid var(--status-green)" : "1px solid var(--border-subtle)",
                       background: formMode === "REAL_TIME" ? "var(--bg-card-hover)" : "var(--bg-surface)",
                       color: formMode === "REAL_TIME" ? "var(--status-green)" : "var(--text-secondary)",
@@ -1334,12 +1410,12 @@ export const PaperTradingPage: React.FC = () => {
                       fontWeight: formMode === "REAL_TIME" ? 600 : 400,
                     }}
                   >
-                    ● Live Market Feed
+                    ● Real-Time Feed
                   </button>
                 </div>
               </div>
 
-              {/* Dataset selection if Historical, or Provider & Symbols if Real-Time */}
+              {/* Dataset selection if Historical, or Provider & Symbols if Real-Time / Synthetic */}
               {formMode === "HISTORICAL_REPLAY" ? (
                 <div>
                   <label style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "block", marginBottom: "0.25rem" }}>
@@ -1358,33 +1434,10 @@ export const PaperTradingPage: React.FC = () => {
                     ))}
                   </select>
                 </div>
-              ) : (
+              ) : formMode === "SYNTHETIC_STREAM" ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                  <div>
-                    <label style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "block", marginBottom: "0.25rem" }}>
-                      STREAMING PROVIDER
-                    </label>
-                    <select
-                      className="input-field"
-                      value={formLiveProvider}
-                      onChange={(e) => setFormLiveProvider(e.target.value)}
-                      style={{ width: "100%" }}
-                    >
-                      {marketProviders.filter((p) => p.is_live).length > 0 ? (
-                        marketProviders
-                          .filter((p) => p.is_live)
-                          .map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {p.name} {p.status === "unconfigured" ? "(Requires Config)" : ""}
-                            </option>
-                          ))
-                      ) : (
-                        <>
-                          <option value="mock">In-Memory Mock Streaming (Local Test / Demo)</option>
-                          <option value="websocket">Generic WebSocket Live Feed</option>
-                        </>
-                      )}
-                    </select>
+                  <div style={{ fontSize: "0.75rem", padding: "0.5rem 0.75rem", borderRadius: "4px", backgroundColor: "rgba(168, 85, 247, 0.1)", border: "1px solid rgba(168, 85, 247, 0.25)", color: "#c084fc" }}>
+                    <strong>SYNTHETIC TEST FEED:</strong> In-memory tick generator simulates ticks & builds bars with zero external vendor dependencies.
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "0.75rem" }}>
                     <div>
@@ -1402,7 +1455,85 @@ export const PaperTradingPage: React.FC = () => {
                     </div>
                     <div>
                       <label style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "block", marginBottom: "0.25rem" }}>
-                        MAX AGE (SEC)
+                        BAR INTERVAL
+                      </label>
+                      <select
+                        className="input-field"
+                        value={formBarInterval}
+                        onChange={(e) => setFormBarInterval(e.target.value)}
+                        style={{ width: "100%" }}
+                      >
+                        <option value="1s">1 second</option>
+                        <option value="1m">1 minute</option>
+                        <option value="5m">5 minutes</option>
+                        <option value="15m">15 minutes</option>
+                        <option value="1h">1 hour</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                  <div>
+                    <label style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "block", marginBottom: "0.25rem" }}>
+                      STREAMING PROVIDER
+                    </label>
+                    <select
+                      className="input-field"
+                      value={formLiveProvider}
+                      onChange={(e) => setFormLiveProvider(e.target.value)}
+                      style={{ width: "100%" }}
+                    >
+                      {marketProviders.filter((p) => p.is_live).length > 0 ? (
+                        marketProviders
+                          .filter((p) => p.is_live)
+                          .map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name} {p.status === "not_configured" || p.status === "unconfigured" ? "(Requires API Credentials)" : ""}
+                            </option>
+                          ))
+                      ) : (
+                        <>
+                          <option value="alpaca">Alpaca Markets v2 (IEX Free / SIP)</option>
+                          <option value="websocket">Generic WebSocket Live Feed</option>
+                        </>
+                      )}
+                    </select>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr", gap: "0.75rem" }}>
+                    <div>
+                      <label style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "block", marginBottom: "0.25rem" }}>
+                        SYMBOLS
+                      </label>
+                      <input
+                        type="text"
+                        className="input-field"
+                        value={formSymbols}
+                        onChange={(e) => setFormSymbols(e.target.value)}
+                        placeholder="AAPL, MSFT"
+                        style={{ width: "100%" }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "block", marginBottom: "0.25rem" }}>
+                        BAR INTERVAL
+                      </label>
+                      <select
+                        className="input-field"
+                        value={formBarInterval}
+                        onChange={(e) => setFormBarInterval(e.target.value)}
+                        style={{ width: "100%" }}
+                      >
+                        <option value="1s">1 second</option>
+                        <option value="1m">1 minute</option>
+                        <option value="5m">5 minutes</option>
+                        <option value="15m">15 minutes</option>
+                        <option value="1h">1 hour</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "block", marginBottom: "0.25rem" }}>
+                        MAX AGE (S)
                       </label>
                       <input
                         type="number"

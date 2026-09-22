@@ -18,6 +18,7 @@ class SessionStatus(str, Enum):
 
 class SessionMode(str, Enum):
     HISTORICAL_REPLAY = "HISTORICAL_REPLAY"
+    SYNTHETIC_STREAM = "SYNTHETIC_STREAM"
     REAL_TIME = "REAL_TIME"
 
 
@@ -63,13 +64,19 @@ class PaperTradingSession:
     strategy_params: Dict[str, Any] = field(default_factory=dict)
     provider: str = "rule_based"  # Decision layer: "rule_based", "xgboost", "typesafe_jev"
 
-    # Real-time and safety attributes
+    # Real-time, streaming, and safety attributes
     mode: str = SessionMode.HISTORICAL_REPLAY.value
-    data_provider_type: str = "HISTORICAL"  # "HISTORICAL", "LIVE_PROVIDER"
+    data_provider_type: str = "HISTORICAL"  # "HISTORICAL", "SYNTHETIC", "LIVE_PROVIDER"
     safety_state: str = SignalSafetyState.SIGNALS_ENABLED.value
     max_data_age_seconds: float = 15.0
     last_data_timestamp: Optional[str] = None
+    last_receive_timestamp: Optional[str] = None
     latency_ms: Optional[float] = None
+    connection_state: str = "DISCONNECTED"
+    reconnect_count: int = 0
+    is_stale: bool = False
+    bar_interval: str = "1m"
+    decision_source: str = "RULE_BASED"
 
     initial_capital: float = 100_000.0
     current_equity: float = 100_000.0
@@ -118,7 +125,13 @@ class PaperTradingSession:
             "safety_state": self.safety_state,
             "max_data_age_seconds": self.max_data_age_seconds,
             "last_data_timestamp": self.last_data_timestamp,
+            "last_receive_timestamp": self.last_receive_timestamp,
             "latency_ms": self.latency_ms,
+            "connection_state": self.connection_state,
+            "reconnect_count": self.reconnect_count,
+            "is_stale": self.is_stale,
+            "bar_interval": self.bar_interval,
+            "decision_source": self.decision_source,
             "initial_capital": self.initial_capital,
             "current_equity": round(self.current_equity, 2),
             "cash": round(self.cash, 2),
@@ -156,7 +169,13 @@ class PaperTradingSession:
             safety_state=data.get("safety_state", SignalSafetyState.SIGNALS_ENABLED.value),
             max_data_age_seconds=float(data.get("max_data_age_seconds", 15.0)),
             last_data_timestamp=data.get("last_data_timestamp"),
+            last_receive_timestamp=data.get("last_receive_timestamp"),
             latency_ms=data.get("latency_ms"),
+            connection_state=data.get("connection_state", "DISCONNECTED"),
+            reconnect_count=int(data.get("reconnect_count", 0)),
+            is_stale=bool(data.get("is_stale", False)),
+            bar_interval=data.get("bar_interval", "1m"),
+            decision_source=data.get("decision_source", "RULE_BASED"),
             initial_capital=float(data.get("initial_capital", 100_000.0)),
             current_equity=float(data.get("current_equity", 100_000.0)),
             cash=float(data.get("cash", 100_000.0)),

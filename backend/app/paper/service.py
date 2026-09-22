@@ -25,6 +25,11 @@ from backend.app.paper.events import (
     SessionLifecycleEvent,
     ProviderStatusEvent,
     MarketUpdateEvent,
+    BarClosedEvent,
+    ReconnectEvent,
+    PaperErrorEvent,
+    JevDecisionEvent,
+    MLPredictionEvent,
 )
 from backend.app.paper.market_data import (
     HistoricalReplayProvider,
@@ -33,8 +38,11 @@ from backend.app.paper.market_data import (
     ConnectionState,
     InMemoryStreamingAdapter,
     GenericWebSocketAdapter,
+    AlpacaMarketDataAdapter,
     BaseProviderAdapter,
+    MarketTick,
 )
+from backend.app.paper.bar_builder import BarBuilder
 from backend.app.paper.sync import SnapshotSynchronizer
 from backend.app.paper.streaming_features import StreamingFeatureEngine
 from backend.app.paper.account import PaperAccount
@@ -75,6 +83,7 @@ class PaperTradingService:
         self.decision_providers: Dict[str, Any] = {}
         self.synchronizers: Dict[str, SnapshotSynchronizer] = {}
         self.feature_engines: Dict[str, StreamingFeatureEngine] = {}
+        self.bar_builders: Dict[str, BarBuilder] = {}
 
         self.tasks: Dict[str, asyncio.Task] = {}
         self.subscribers: Dict[str, Set[WebSocket]] = {}
@@ -107,7 +116,11 @@ class PaperTradingService:
         config: Dict[str, Any],
         dataset_manager: Optional[Any] = None,
     ) -> PaperTradingSession:
-        if len(self.sessions) >= settings.max_paper_sessions:
+        active_sessions = [
+            s for s in self.sessions.values()
+            if s.status not in (SessionStatus.STOPPED, SessionStatus.ERROR)
+        ]
+        if len(active_sessions) >= settings.max_paper_sessions:
             raise ValueError(
                 f"Maximum active paper sessions limit reached ({settings.max_paper_sessions}). "
                 "Complete or remove existing sessions."
@@ -135,58 +148,119 @@ class PaperTradingService:
         })
         risk_cfg["allow_shorting"] = allow_shorting
 
-        # 1. Initialize market data provider (Historical or Real-Time)
+        # 1. Initialize market data provider (Historical, Synthetic, or Real-Time Provider)
         session_mode = config.get("mode", SessionMode.HISTORICAL_REPLAY.value)
         data_provider_type = config.get("data_provider_type", config.get("data_provider", "HISTORICAL"))
+        bar_interval = config.get("bar_interval", "1m")
         synchronizer = None
         feat_engine = None
+        bar_builder = None
+        initial_conn_state = "DISCONNECTED"
 
         if session_mode == SessionMode.REAL_TIME.value or data_provider_type == "LIVE_PROVIDER":
             session_mode = SessionMode.REAL_TIME.value
             data_provider_type = "LIVE_PROVIDER"
 
-            live_prov_name = config.get("live_provider", settings.live_data_provider)
+            live_prov_name = config.get("live_provider") or config.get("provider") or settings.market_data_provider
             if live_prov_name in ("mock", "in_memory", "in_memory_mock"):
                 adapter = InMemoryStreamingAdapter(
                     symbols=symbols,
                     quote_only=bool(config.get("quote_only", False)),
                 )
+                initial_conn_state = "CONNECTED"
+            elif live_prov_name in ("alpaca", "alpaca_iex", "alpaca_sip"):
+                feed_type = "sip" if "sip" in live_prov_name else settings.alpaca_data_feed
+                api_key = config.get("api_key") or settings.alpaca_api_key or settings.market_data_api_key
+                api_secret = config.get("api_secret") or config.get("secret_key") or settings.alpaca_secret_key or settings.market_data_api_secret
+                adapter = AlpacaMarketDataAdapter(
+                    api_key=api_key,
+                    api_secret=api_secret,
+                    symbols=symbols,
+                    feed=feed_type,
+                    api_url=config.get("live_api_url") or settings.market_data_api_url,
+                    reconnect_attempts=settings.market_data_reconnect_attempts,
+                    reconnect_backoff_factor=settings.market_data_reconnect_backoff_factor,
+                )
+                initial_conn_state = adapter.status.state.value
             elif live_prov_name in ("websocket", "generic_ws"):
-                url = config.get("live_api_url") or settings.live_data_api_url
+                url = config.get("live_api_url") or settings.market_data_api_url
                 if not url:
                     raise ValueError(f"Real-time market data provider '{live_prov_name}' requires API URL configuration. None supplied.")
                 adapter = GenericWebSocketAdapter(
                     api_url=url,
-                    api_key=settings.live_data_api_key,
-                    api_secret=settings.live_data_api_secret,
+                    api_key=settings.market_data_api_key,
+                    api_secret=settings.market_data_api_secret,
                     symbols=symbols,
                 )
+                initial_conn_state = adapter.status.state.value
             elif "adapter" in config and isinstance(config["adapter"], BaseProviderAdapter):
                 adapter = config["adapter"]
+                initial_conn_state = adapter.status.state.value
             else:
-                raise ValueError(f"Real-time market data provider '{live_prov_name}' is not configured or unavailable.")
+                # Default to Alpaca adapter
+                api_key = config.get("api_key") or settings.market_data_api_key
+                api_secret = config.get("api_secret") or settings.market_data_api_secret
+                adapter = AlpacaMarketDataAdapter(
+                    api_key=api_key,
+                    api_secret=api_secret,
+                    symbols=symbols,
+                    feed=settings.alpaca_data_feed,
+                    api_url=config.get("live_api_url") or settings.market_data_api_url,
+                    reconnect_attempts=settings.market_data_reconnect_attempts,
+                    reconnect_backoff_factor=settings.market_data_reconnect_backoff_factor,
+                )
+                initial_conn_state = adapter.status.state.value
 
             data_provider = RealTimeMarketDataProvider(
                 adapter=adapter,
                 symbols=symbols,
-                max_reconnect_attempts=settings.live_data_reconnect_max_attempts,
-                reconnect_backoff_factor=settings.live_data_reconnect_backoff_factor,
-                heartbeat_interval_seconds=settings.live_data_heartbeat_interval,
+                max_reconnect_attempts=settings.market_data_reconnect_attempts,
+                reconnect_backoff_factor=settings.market_data_reconnect_backoff_factor,
+                heartbeat_interval_seconds=settings.market_data_heartbeat_interval,
             )
             total_bars = 0
             synchronizer = SnapshotSynchronizer(
                 symbols=symbols,
-                max_desync_seconds=float(config.get("max_desync_seconds", settings.live_data_max_desync_seconds)),
+                max_desync_seconds=float(config.get("max_desync_seconds", settings.market_data_max_desync_seconds)),
             )
             feat_engine = StreamingFeatureEngine(symbols=symbols)
+            bar_builder = BarBuilder(interval=bar_interval, symbols=symbols)
+
+        elif (
+            session_mode == SessionMode.SYNTHETIC_STREAM.value
+            or data_provider_type == "SYNTHETIC"
+            or config.get("live_provider") in ("mock", "in_memory", "in_memory_mock")
+        ):
+            session_mode = SessionMode.SYNTHETIC_STREAM.value
+            data_provider_type = "SYNTHETIC"
+            adapter = InMemoryStreamingAdapter(
+                symbols=symbols,
+                quote_only=bool(config.get("quote_only", False)),
+            )
+            data_provider = RealTimeMarketDataProvider(
+                adapter=adapter,
+                symbols=symbols,
+                max_reconnect_attempts=settings.market_data_reconnect_attempts,
+                reconnect_backoff_factor=settings.market_data_reconnect_backoff_factor,
+                heartbeat_interval_seconds=settings.market_data_heartbeat_interval,
+            )
+            total_bars = 0
+            synchronizer = SnapshotSynchronizer(
+                symbols=symbols,
+                max_desync_seconds=float(config.get("max_desync_seconds", settings.market_data_max_desync_seconds)),
+            )
+            feat_engine = StreamingFeatureEngine(symbols=symbols)
+            bar_builder = BarBuilder(interval=bar_interval, symbols=symbols)
+            initial_conn_state = "CONNECTED"
+
         else:
+            # HISTORICAL_REPLAY
             session_mode = SessionMode.HISTORICAL_REPLAY.value
             data_provider_type = "HISTORICAL"
-            dm = dataset_manager or config.get("dataset_manager")
             data_provider = HistoricalReplayProvider(
                 dataset_id=dataset_id,
                 symbols=symbols,
-                dataset_manager=dm,
+                dataset_manager=dataset_manager or config.get("dataset_manager"),
                 start_date=config.get("start_date"),
                 end_date=config.get("end_date"),
             )
@@ -203,7 +277,9 @@ class PaperTradingService:
             mode=session_mode,
             data_provider_type=data_provider_type,
             safety_state=SignalSafetyState.SIGNALS_ENABLED.value,
-            max_data_age_seconds=float(config.get("max_data_age_seconds", settings.live_data_max_data_age_seconds)),
+            max_data_age_seconds=float(config.get("max_data_age_seconds", settings.market_data_max_age_seconds)),
+            connection_state=initial_conn_state,
+            bar_interval=bar_interval,
             initial_capital=initial_capital,
             current_equity=initial_capital,
             cash=initial_capital,
@@ -274,6 +350,8 @@ class PaperTradingService:
             self.synchronizers[sid] = synchronizer
         if feat_engine is not None:
             self.feature_engines[sid] = feat_engine
+        if bar_builder is not None:
+            self.bar_builders[sid] = bar_builder
         self.recent_events[sid] = []
         self.subscribers[sid] = set()
 
@@ -320,7 +398,7 @@ class PaperTradingService:
         # Launch async loop if not active
         existing_task = self.tasks.get(session_id)
         if existing_task is None or existing_task.done():
-            if session.mode == SessionMode.REAL_TIME.value:
+            if session.mode in (SessionMode.REAL_TIME.value, SessionMode.SYNTHETIC_STREAM.value):
                 task = self._schedule_task(session_id, self._live_stream_loop(session_id))
             else:
                 task = self._schedule_task(session_id, self._replay_loop(session_id))
@@ -386,14 +464,15 @@ class PaperTradingService:
         self._schedule_broadcast(session_id, evt)
         return session
 
-    def set_speed(self, session_id: str, speed: str) -> PaperTradingSession:
+    def set_speed(self, session_id: str, speed: Any) -> PaperTradingSession:
         session = self._get_required_session(session_id)
+        speed_str = speed.value if hasattr(speed, "value") else str(speed)
         # Validate speed string
         valid_speeds = [s.value for s in ReplaySpeed]
-        if speed not in valid_speeds:
-            raise ValueError(f"Invalid speed '{speed}'. Must be one of {valid_speeds}")
+        if speed_str not in valid_speeds:
+            raise ValueError(f"Invalid speed '{speed_str}'. Must be one of {valid_speeds}")
 
-        session.speed = speed
+        session.speed = speed_str
         self.storage.save_session(session)
 
         evt = SessionLifecycleEvent(
@@ -403,11 +482,14 @@ class PaperTradingService:
             status=session.status.value,
             current_bar=session.current_bar_index,
             total_bars=session.total_bars,
-            message=f"Replay speed adjusted to {speed}.",
+            message=f"Replay speed adjusted to {speed_str}.",
         )
         self._record_event(session_id, evt)
         self._schedule_broadcast(session_id, evt)
         return session
+
+    def set_replay_speed(self, session_id: str, speed: Any) -> PaperTradingSession:
+        return self.set_speed(session_id, speed)
 
     def _schedule_broadcast(self, session_id: str, event: PaperEvent) -> None:
         try:
@@ -497,11 +579,33 @@ class PaperTradingService:
                 return
 
             if hasattr(provider, "connect"):
-                await provider.connect()
+                try:
+                    await provider.connect()
+                except ValueError as ve:
+                    # Unconfigured provider credentials
+                    session.status = SessionStatus.ERROR
+                    session.connection_state = ConnectionState.NOT_CONFIGURED.value
+                    session.safety_state = SignalSafetyState.SIGNALS_PAUSED.value
+                    session.error_message = str(ve)
+                    self.storage.save_session(session)
+                    err_evt = PaperErrorEvent(
+                        timestamp=datetime.now(timezone.utc).isoformat(),
+                        event_type="ERROR",
+                        session_id=session_id,
+                        error_type="NOT_CONFIGURED",
+                        message=str(ve),
+                    )
+                    self._record_event(session_id, err_evt)
+                    await self._broadcast(session_id, err_evt)
+                    return
 
             if not hasattr(provider, "stream"):
                 logger.error(f"Provider does not support streaming in session {session_id}")
                 return
+
+            bar_builder = self.bar_builders.get(session_id)
+            feat_engine = self.feature_engines.get(session_id)
+            synchronizer = self.synchronizers.get(session_id)
 
             async for snapshot in provider.stream():
                 if session.status != SessionStatus.RUNNING:
@@ -515,16 +619,27 @@ class PaperTradingService:
 
                 prov_status = provider.status if hasattr(provider, "status") else None
                 is_connected = prov_status.connected if prov_status else True
+                reconnect_cnt = prov_status.reconnect_count if prov_status else 0
 
-                # Safety State Machine:
-                # CONNECTED + FRESH DATA -> SIGNALS_ENABLED
-                # DISCONNECTED / RECONNECTING / ERROR / STALE -> SIGNALS_PAUSED
-                if is_connected and not is_stale and (not prov_status or prov_status.state == ConnectionState.CONNECTED):
-                    session.safety_state = SignalSafetyState.SIGNALS_ENABLED.value
-                else:
-                    session.safety_state = SignalSafetyState.SIGNALS_PAUSED.value
-
+                # Update session tracking fields
+                session.connection_state = prov_status.state.value if prov_status else "CONNECTED"
+                session.reconnect_count = reconnect_cnt
+                session.last_data_timestamp = snapshot.timestamp.isoformat() if hasattr(snapshot.timestamp, "isoformat") else str(snapshot.timestamp)
+                session.last_receive_timestamp = now.isoformat()
                 session.latency_ms = snapshot.latency_ms or (prov_status.latency_ms if prov_status else None)
+
+                # Broadcast ReconnectEvent if reconnect occurred
+                if prov_status and prov_status.state == ConnectionState.RECONNECTING:
+                    rec_evt = ReconnectEvent(
+                        timestamp=now.isoformat(),
+                        event_type="RECONNECT",
+                        session_id=session_id,
+                        provider=session.provider,
+                        reconnect_attempt=reconnect_cnt,
+                        reason=prov_status.last_error,
+                    )
+                    self._record_event(session_id, rec_evt)
+                    await self._broadcast(session_id, rec_evt)
 
                 # Broadcast ProviderStatusEvent
                 status_evt = ProviderStatusEvent(
@@ -532,9 +647,9 @@ class PaperTradingService:
                     event_type="PROVIDER_STATUS",
                     session_id=session_id,
                     provider=session.provider,
-                    status=prov_status.state.value if prov_status else "CONNECTED",
+                    status=session.connection_state,
                     connected=is_connected,
-                    reconnect_count=prov_status.reconnect_count if prov_status else 0,
+                    reconnect_count=reconnect_cnt,
                     latency_ms=session.latency_ms,
                     is_stale=is_stale,
                     safety_state=session.safety_state,
@@ -566,18 +681,70 @@ class PaperTradingService:
                     self._record_event(session_id, m_upd)
                     await self._broadcast(session_id, m_upd)
 
-                # Update streaming feature engine
-                feat_engine = self.feature_engines.get(session_id)
-                if feat_engine is not None:
-                    feat_engine.update_snapshot(snapshot)
+                # Tick-to-Bar Aggregation via BarBuilder
+                closed_bars: List[OHLCVBar] = []
+                if bar_builder is not None:
+                    for sym, bar in snapshot.bars.items():
+                        tick = MarketTick(
+                            symbol=sym,
+                            exchange_timestamp=snapshot.timestamp,
+                            received_timestamp=snapshot.received_at or now,
+                            last_price=bar.last_price or bar.close,
+                            bid=bar.bid,
+                            ask=bar.ask,
+                            volume=bar.volume,
+                            source=session.data_provider_type,
+                        )
+                        c_bar = bar_builder.add_tick(tick)
+                        if c_bar is not None:
+                            closed_bars.append(c_bar)
+                            b_evt = BarClosedEvent(
+                                timestamp=c_bar.timestamp.isoformat(),
+                                event_type="BAR_CLOSED",
+                                session_id=session_id,
+                                symbol=sym,
+                                interval=bar_builder.interval,
+                                open=c_bar.open,
+                                high=c_bar.high,
+                                low=c_bar.low,
+                                close=c_bar.close,
+                                volume=c_bar.volume or 0.0,
+                                bar_index=session.current_bar_index,
+                            )
+                            self._record_event(session_id, b_evt)
+                            await self._broadcast(session_id, b_evt)
 
-                # Update snapshot synchronizer
-                synchronizer = self.synchronizers.get(session_id)
+                # Update streaming feature engine with finalized bars or raw snapshots
+                if feat_engine is not None:
+                    if closed_bars:
+                        for cb in closed_bars:
+                            feat_engine.update_bar(cb)
+                    else:
+                        feat_engine.update_snapshot(snapshot)
+
+                # Multi-Asset Snapshot Synchronization & per-symbol staleness check
                 is_sync = True
                 if synchronizer is not None:
                     synchronizer.update_snapshot(snapshot)
                     if len(session.symbols) > 1:
                         is_sync = synchronizer.is_synchronized(now)
+                        stale_syms = synchronizer.get_stale_symbols(max_age_seconds=session.max_data_age_seconds, reference_time=now)
+                        if stale_syms:
+                            is_stale = True
+                    else:
+                        is_sync = synchronizer.is_symbol_fresh(session.symbols[0], max_age_seconds=session.max_data_age_seconds, reference_time=now)
+                        if not is_sync:
+                            is_stale = True
+
+                session.is_stale = is_stale
+
+                # Signal Safety State Machine:
+                # CONNECTED + FRESH DATA + SYNCHRONIZED -> SIGNALS_ENABLED
+                # DISCONNECTED / RECONNECTING / ERROR / STALE -> SIGNALS_PAUSED
+                if is_connected and not is_stale and is_sync and (not prov_status or prov_status.state == ConnectionState.CONNECTED):
+                    session.safety_state = SignalSafetyState.SIGNALS_ENABLED.value
+                else:
+                    session.safety_state = SignalSafetyState.SIGNALS_PAUSED.value
 
                 # Execute step with safety constraints
                 step_events = self._execute_step(session_id, snapshot=snapshot, is_sync=is_sync)
@@ -715,6 +882,15 @@ class PaperTradingService:
 
         # 6. Strategy evaluation (only if SIGNALS_ENABLED and data is synchronized)
         signals = []
+        decision_src = "RULE_BASED"
+        model_ver = None
+        jev_mode = "NONE"
+
+        if hasattr(strategy, "predictor") and getattr(strategy, "predictor", None) is not None:
+            decision_src = "XGBOOST"
+            if hasattr(strategy, "artifact") and getattr(strategy, "artifact", None) is not None:
+                model_ver = getattr(strategy.artifact, "version", "v1")
+
         if session.safety_state == SignalSafetyState.SIGNALS_ENABLED.value and is_sync:
             try:
                 raw_signals = strategy.generate_signal(loop_item, hist_slice)
@@ -728,8 +904,22 @@ class PaperTradingService:
                 logger.error(f"Strategy signal generation error in session {session_id}: {e}")
                 signals = []
 
-        # Emit StrategySignalEvent
+        # Emit MLPredictionEvent and StrategySignalEvent
         for s in signals:
+            if decision_src == "XGBOOST":
+                pred_val = s.metadata.get("ml_probability", s.strength)
+                ml_evt = MLPredictionEvent(
+                    timestamp=ts_str,
+                    event_type="ML_PREDICTION",
+                    session_id=session_id,
+                    symbol=s.symbol,
+                    model_version=model_ver or "v1",
+                    prediction=float(pred_val),
+                    features_used=len(s.metadata.get("features", {})),
+                )
+                self._record_event(session_id, ml_evt)
+                events.append(ml_evt)
+
             sig_evt = StrategySignalEvent(
                 timestamp=ts_str,
                 event_type="STRATEGY_SIGNAL",
@@ -739,6 +929,9 @@ class PaperTradingService:
                 strength=s.strength,
                 strategy_name=session.strategy,
                 provider=session.provider,
+                decision_source=decision_src,
+                model_version=model_ver,
+                jev_decision_mode=jev_mode,
                 metadata=s.metadata,
             )
             self._record_event(session_id, sig_evt)
@@ -759,6 +952,22 @@ class PaperTradingService:
                         signals=signals,
                     )
                     decision = jev_provider.evaluate(ctx)
+                    jev_mode = "CACHED_JEV" if getattr(decision, "cached", False) else "LIVE_JEV"
+                    decision_src = "JEV_ASSISTED" if decision_src == "XGBOOST" else "JEV"
+
+                    jev_evt = JevDecisionEvent(
+                        timestamp=ts_str,
+                        event_type="JEV_DECISION",
+                        session_id=session_id,
+                        symbol=actionable[0].symbol,
+                        decision=decision.decision.value if hasattr(decision.decision, "value") else str(decision.decision),
+                        confidence=getattr(decision, "confidence", 1.0),
+                        mode=jev_mode,
+                        rationale=getattr(decision, "rationale", ""),
+                    )
+                    self._record_event(session_id, jev_evt)
+                    events.append(jev_evt)
+
                     if decision.decision == JevDecisionType.BUY:
                         signals = [s for s in signals if s.signal_type == SignalType.BUY]
                     elif decision.decision == JevDecisionType.SELL:
@@ -768,6 +977,8 @@ class PaperTradingService:
             except Exception as e:
                 logger.warning(f"Jev evaluation failure or timeout: {e}. Defaulting to NO_ACTION.")
                 signals = []
+
+        session.decision_source = decision_src
 
         # 8. Order generation and authoritative RiskManager validation
         for sig in signals:
@@ -789,6 +1000,9 @@ class PaperTradingService:
                         timestamp=snapshot.timestamp,
                         strategy_name=session.strategy,
                         provider=session.provider,
+                        decision_source=decision_src,
+                        model_version=model_ver,
+                        jev_mode=jev_mode,
                     )
                     b_order = Order(
                         order_id=order_rec.order_id,
@@ -856,6 +1070,9 @@ class PaperTradingService:
                             timestamp=snapshot.timestamp,
                             strategy_name=session.strategy,
                             provider=session.provider,
+                            decision_source=decision_src,
+                            model_version=model_ver,
+                            jev_mode=jev_mode,
                         )
                         b_order = Order(
                             order_id=order_rec.order_id,
@@ -895,6 +1112,7 @@ class PaperTradingService:
                                     quantity=qty,
                                     stop_price=float(stop_price),
                                     created_at=snapshot.timestamp,
+                                    timestamp=snapshot.timestamp,
                                 )
                                 broker.submit_order(stop_order)
 
@@ -928,6 +1146,9 @@ class PaperTradingService:
                         timestamp=snapshot.timestamp,
                         strategy_name=session.strategy,
                         provider=session.provider,
+                        decision_source=decision_src,
+                        model_version=model_ver,
+                        jev_mode=jev_mode,
                     )
                     b_order = Order(
                         order_id=order_rec.order_id,
@@ -995,6 +1216,9 @@ class PaperTradingService:
                             timestamp=snapshot.timestamp,
                             strategy_name=session.strategy,
                             provider=session.provider,
+                            decision_source=decision_src,
+                            model_version=model_ver,
+                            jev_mode=jev_mode,
                         )
                         b_order = Order(
                             order_id=order_rec.order_id,
@@ -1034,6 +1258,7 @@ class PaperTradingService:
                                     quantity=qty,
                                     stop_price=float(stop_price),
                                     created_at=snapshot.timestamp,
+                                    timestamp=snapshot.timestamp,
                                 )
                                 broker.submit_order(stop_order)
 
@@ -1115,7 +1340,7 @@ class PaperTradingService:
         for ws in subscribers:
             try:
                 if ws.client_state == WebSocketState.CONNECTED:
-                    await ws.send_json(payload)
+                    await asyncio.wait_for(ws.send_json(payload), timeout=0.1)
                 else:
                     dead.add(ws)
             except Exception:
@@ -1191,7 +1416,21 @@ class PaperTradingService:
                 }
                 for ep in account.portfolio.equity_history
             ]
-            trades = account.get_completed_trades()
+            raw_trades = account.get_completed_trades()
+            order_map = {o.get("order_id"): o for o in orders if isinstance(o, dict) and "order_id" in o}
+            for tr in raw_trades:
+                tr_dict = dict(tr)
+                oid = tr_dict.get("order_id")
+                matched_order = order_map.get(oid) if oid else None
+                if matched_order:
+                    tr_dict["decision_source"] = matched_order.get("decision_source", session.decision_source or "RULE_BASED")
+                    tr_dict["model_version"] = matched_order.get("model_version")
+                    tr_dict["jev_mode"] = matched_order.get("jev_mode", "NONE")
+                else:
+                    tr_dict.setdefault("decision_source", session.decision_source or "RULE_BASED")
+                    tr_dict.setdefault("model_version", None)
+                    tr_dict.setdefault("jev_mode", "NONE")
+                trades.append(tr_dict)
 
         return {
             "session": session.to_dict(),

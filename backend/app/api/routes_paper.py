@@ -24,6 +24,7 @@ class CreateSessionRequest(BaseModel):
     data_provider: str = "HISTORICAL"
     data_provider_type: Optional[str] = None
     live_provider: Optional[str] = None
+    bar_interval: str = "1m"
     max_data_age_seconds: float = 15.0
     max_desync_seconds: float = 5.0
     initial_capital: float = 100_000.0
@@ -82,10 +83,10 @@ def get_paper_session(session_id: str) -> Dict[str, Any]:
 
 @router.post("/sessions/{session_id}/start")
 def start_paper_session(session_id: str) -> Dict[str, Any]:
-    """Starts historical bar replay for a paper trading session."""
+    """Starts execution of an idle or paused paper trading session."""
     try:
-        sess = paper_service.start_session(session_id)
-        return sess.to_dict()
+        session = paper_service.start_session(session_id)
+        return session.to_dict()
     except KeyError:
         raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found.")
     except Exception as e:
@@ -94,10 +95,10 @@ def start_paper_session(session_id: str) -> Dict[str, Any]:
 
 @router.post("/sessions/{session_id}/pause")
 def pause_paper_session(session_id: str) -> Dict[str, Any]:
-    """Pauses historical bar replay."""
+    """Pauses a running paper trading session."""
     try:
-        sess = paper_service.pause_session(session_id)
-        return sess.to_dict()
+        session = paper_service.pause_session(session_id)
+        return session.to_dict()
     except KeyError:
         raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found.")
 
@@ -114,35 +115,24 @@ def resume_paper_session(session_id: str) -> Dict[str, Any]:
 
 @router.post("/sessions/{session_id}/stop")
 def stop_paper_session(session_id: str) -> Dict[str, Any]:
-    """Stops historical bar replay."""
+    """Stops and finalizes a paper trading session."""
     try:
-        sess = paper_service.stop_session(session_id)
-        return sess.to_dict()
+        session = paper_service.stop_session(session_id)
+        return session.to_dict()
     except KeyError:
         raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found.")
-
-
-@router.post("/sessions/{session_id}/speed")
-def change_replay_speed(session_id: str, req: SpeedChangeRequest) -> Dict[str, Any]:
-    """Adjusts replay speed (0.5x, 1x, 2x, 5x, 10x, MAX)."""
-    try:
-        sess = paper_service.set_speed(session_id, req.speed)
-        return sess.to_dict()
-    except KeyError:
-        raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found.")
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post("/sessions/{session_id}/step")
 def step_paper_session(session_id: str) -> Dict[str, Any]:
-    """Manually steps the simulation forward by 1 bar."""
+    """Advances one bar forward synchronously in a paused historical session."""
     try:
-        sess, events = paper_service.step_session(session_id)
+        session, events = paper_service.step_session(session_id)
         return {
-            "session": sess.to_dict(),
+            "session": session.to_dict(),
             "events_count": len(events),
             "events": events,
+            "bar_index": session.current_bar_index,
         }
     except KeyError:
         raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found.")
@@ -150,27 +140,41 @@ def step_paper_session(session_id: str) -> Dict[str, Any]:
         raise HTTPException(status_code=400, detail=str(e))
 
 
+@router.post("/sessions/{session_id}/speed")
+def change_replay_speed(session_id: str, req: SpeedChangeRequest) -> Dict[str, Any]:
+    """Changes the replay speed multiplier on the fly."""
+    try:
+        speed = ReplaySpeed(req.speed)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"Invalid speed. Choose from: {[s.value for s in ReplaySpeed]}")
+    try:
+        session = paper_service.set_replay_speed(session_id, speed)
+        return session.to_dict()
+    except KeyError:
+        raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found.")
+
+
 @router.get("/sessions/{session_id}/orders")
 def get_session_orders(session_id: str) -> List[Dict[str, Any]]:
-    """Returns order history including rejected and executed orders."""
+    """Returns order history for the specified paper trading session."""
     return paper_service.get_orders(session_id)
 
 
 @router.get("/sessions/{session_id}/positions")
 def get_session_positions(session_id: str) -> List[Dict[str, Any]]:
-    """Returns current active positions in the paper session."""
+    """Returns open positions with mark-to-market prices."""
     return paper_service.get_positions(session_id)
 
 
 @router.get("/sessions/{session_id}/events")
-def get_session_events(session_id: str, limit: int = 100) -> List[Dict[str, Any]]:
-    """Returns chronologically logged simulation events."""
-    return paper_service.get_events(session_id, limit=limit)
+def get_session_events(session_id: str) -> List[Dict[str, Any]]:
+    """Returns recent runtime and market events for this session."""
+    return paper_service.get_events(session_id, limit=100)
 
 
 @router.get("/sessions/{session_id}/export")
 def export_session_results(session_id: str) -> Dict[str, Any]:
-    """Exports comprehensive performance summary, equity curve, trade log, and orders."""
+    """Exports full session results, equity curve, orders, and trades as JSON."""
     try:
         return paper_service.export_results(session_id)
     except KeyError:
@@ -179,7 +183,7 @@ def export_session_results(session_id: str) -> Dict[str, Any]:
 
 @router.get("/sessions/{session_id}/export/trades.csv")
 def export_trades_csv(session_id: str) -> Response:
-    """Exports trades log as CSV format."""
+    """Exports trades log as CSV format with decision source metadata."""
     try:
         data = paper_service.export_results(session_id)
     except KeyError:
@@ -189,7 +193,8 @@ def export_trades_csv(session_id: str) -> Response:
     writer = csv.writer(output)
     writer.writerow([
         "trade_id", "symbol", "entry_time", "exit_time", "direction",
-        "quantity", "entry_price", "exit_price", "realized_pnl", "return_pct", "exit_reason"
+        "quantity", "entry_price", "exit_price", "realized_pnl", "return_pct", "exit_reason",
+        "decision_source", "model_version", "jev_mode",
     ])
     for t in data.get("trades", []):
         writer.writerow([
@@ -204,6 +209,9 @@ def export_trades_csv(session_id: str) -> Response:
             t.get("realized_pnl", 0.0),
             t.get("return_pct", 0.0),
             t.get("exit_reason", ""),
+            t.get("decision_source", "RULE_BASED"),
+            t.get("model_version", ""),
+            t.get("jev_mode", "NONE"),
         ])
 
     return Response(

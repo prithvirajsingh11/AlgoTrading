@@ -34,6 +34,9 @@ class PaperOrderRecord:
     rejection_reason: Optional[str] = None
     strategy_name: str = ""
     provider: str = ""
+    decision_source: str = "RULE_BASED"
+    model_version: Optional[str] = None
+    jev_mode: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -52,6 +55,9 @@ class PaperOrderRecord:
             "rejection_reason": self.rejection_reason,
             "strategy_name": self.strategy_name,
             "provider": self.provider,
+            "decision_source": self.decision_source,
+            "model_version": self.model_version,
+            "jev_mode": self.jev_mode,
         }
 
 
@@ -72,6 +78,9 @@ class PaperOrderManager:
         requested_price: Optional[float] = None,
         strategy_name: str = "",
         provider: str = "",
+        decision_source: str = "RULE_BASED",
+        model_version: Optional[str] = None,
+        jev_mode: Optional[str] = None,
     ) -> PaperOrderRecord:
         oid = f"ord_{uuid.uuid4().hex[:8]}"
         rec = PaperOrderRecord(
@@ -86,6 +95,9 @@ class PaperOrderManager:
             status=OrderStatus.PENDING.value,
             strategy_name=strategy_name,
             provider=provider,
+            decision_source=decision_source,
+            model_version=model_version,
+            jev_mode=jev_mode,
         )
         self.orders[oid] = rec
         return rec

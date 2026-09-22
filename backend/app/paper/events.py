@@ -14,6 +14,7 @@ class PaperEvent:
     event_type: str
     session_id: str
     received_at: Optional[str] = None
+    correlation_id: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         res = {
@@ -23,6 +24,8 @@ class PaperEvent:
         }
         if self.received_at:
             res["received_at"] = self.received_at
+        if self.correlation_id:
+            res["correlation_id"] = self.correlation_id
         return res
 
 
@@ -60,6 +63,9 @@ class StrategySignalEvent(PaperEvent):
     strength: float = 1.0
     strategy_name: str = ""
     provider: str = ""
+    decision_source: str = "RULE_BASED"  # RULE_BASED, XGBOOST, JEV, JEV_ASSISTED
+    model_version: Optional[str] = None
+    jev_decision_mode: Optional[str] = None  # LIVE_JEV, CACHED_JEV
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -70,6 +76,9 @@ class StrategySignalEvent(PaperEvent):
             "strength": self.strength,
             "strategy_name": self.strategy_name,
             "provider": self.provider,
+            "decision_source": self.decision_source,
+            "model_version": self.model_version,
+            "jev_decision_mode": self.jev_decision_mode,
             "metadata": self.metadata,
         })
         return d
@@ -245,4 +254,105 @@ class MarketUpdateEvent(PaperEvent):
             "is_stale": self.is_stale,
         })
         return d
+
+
+@dataclass(frozen=True)
+class BarClosedEvent(PaperEvent):
+    symbol: str = ""
+    interval: str = "1m"
+    open: Optional[float] = None
+    high: Optional[float] = None
+    low: Optional[float] = None
+    close: float = 0.0
+    volume: float = 0.0
+    bar_index: int = 0
+
+    def to_dict(self) -> Dict[str, Any]:
+        d = super().to_dict()
+        d.update({
+            "symbol": self.symbol,
+            "interval": self.interval,
+            "open": self.open,
+            "high": self.high,
+            "low": self.low,
+            "close": self.close,
+            "volume": self.volume,
+            "bar_index": self.bar_index,
+        })
+        return d
+
+
+@dataclass(frozen=True)
+class ReconnectEvent(PaperEvent):
+    provider: str = ""
+    reconnect_attempt: int = 0
+    max_attempts: int = 5
+    backoff_seconds: float = 1.0
+    reason: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        d = super().to_dict()
+        d.update({
+            "provider": self.provider,
+            "reconnect_attempt": self.reconnect_attempt,
+            "max_attempts": self.max_attempts,
+            "backoff_seconds": self.backoff_seconds,
+            "reason": self.reason,
+        })
+        return d
+
+
+@dataclass(frozen=True)
+class PaperErrorEvent(PaperEvent):
+    error_type: str = "RUNTIME"
+    message: str = ""
+    detail: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        d = super().to_dict()
+        d.update({
+            "error_type": self.error_type,
+            "message": self.message,
+            "detail": self.detail,
+        })
+        return d
+
+
+@dataclass(frozen=True)
+class JevDecisionEvent(PaperEvent):
+    symbol: str = ""
+    decision: str = "NO_ACTION"
+    confidence: float = 0.0
+    mode: str = "LIVE_JEV"  # LIVE_JEV or CACHED_JEV
+    rationale: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        d = super().to_dict()
+        d.update({
+            "symbol": self.symbol,
+            "decision": self.decision,
+            "confidence": self.confidence,
+            "mode": self.mode,
+            "rationale": self.rationale,
+        })
+        return d
+
+
+@dataclass(frozen=True)
+class MLPredictionEvent(PaperEvent):
+    symbol: str = ""
+    model_version: str = "v1"
+    prediction: float = 0.5
+    features_used: int = 0
+
+    def to_dict(self) -> Dict[str, Any]:
+        d = super().to_dict()
+        d.update({
+            "symbol": self.symbol,
+            "model_version": self.model_version,
+            "prediction": self.prediction,
+            "features_used": self.features_used,
+        })
+        return d
+
 

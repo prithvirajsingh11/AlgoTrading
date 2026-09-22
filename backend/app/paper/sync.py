@@ -86,6 +86,41 @@ class SnapshotSynchronizer:
 
         return None
 
+    def is_symbol_fresh(
+        self,
+        symbol: str,
+        max_age_seconds: Optional[float] = None,
+        reference_time: Optional[datetime] = None,
+    ) -> bool:
+        """Checks if a specific symbol's latest observation is fresh."""
+        if symbol not in self._latest_bars:
+            return False
+        max_age = max_age_seconds if max_age_seconds is not None else self.max_desync_seconds
+        ref = reference_time or datetime.now(timezone.utc)
+        ref_ts = ref.timestamp() if hasattr(ref, "timestamp") else 0
+        bar = self._latest_bars[symbol]
+        b_ts = bar.timestamp.timestamp() if hasattr(bar.timestamp, "timestamp") else 0
+        age = ref_ts - b_ts
+        return 0 <= age <= max_age
+
+    def get_stale_symbols(
+        self,
+        max_age_seconds: Optional[float] = None,
+        reference_time: Optional[datetime] = None,
+    ) -> List[str]:
+        """Returns list of configured symbols that are either missing or stale."""
+        max_age = max_age_seconds if max_age_seconds is not None else self.max_desync_seconds
+        return [s for s in self.symbols if not self.is_symbol_fresh(s, max_age, reference_time)]
+
+    def get_fresh_symbols(
+        self,
+        max_age_seconds: Optional[float] = None,
+        reference_time: Optional[datetime] = None,
+    ) -> List[str]:
+        """Returns list of configured symbols that currently have fresh observations."""
+        max_age = max_age_seconds if max_age_seconds is not None else self.max_desync_seconds
+        return [s for s in self.symbols if self.is_symbol_fresh(s, max_age, reference_time)]
+
     def get_synchronized_snapshot(self, reference_time: Optional[datetime] = None) -> Optional[MarketSnapshot]:
         """Constructs a synchronized MarketSnapshot if freshness policy is met, else None."""
         if not self.is_synchronized(reference_time):

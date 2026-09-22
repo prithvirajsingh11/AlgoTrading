@@ -361,9 +361,11 @@ export interface PaperTradingSessionSummary {
   current_bar_index: number;
   total_bars: number;
   simulation_timestamp?: string | null;
-  mode?: "HISTORICAL_REPLAY" | "REAL_TIME";
+  mode?: "HISTORICAL_REPLAY" | "SYNTHETIC_STREAM" | "REAL_TIME";
   data_provider_type?: string;
+  bar_interval?: string;
   safety_state?: "SIGNALS_ENABLED" | "SIGNALS_PAUSED";
+  decision_source?: string;
   max_data_age_seconds?: number;
   last_data_timestamp?: string | null;
   latency_ms?: number | null;
@@ -377,11 +379,12 @@ export interface MarketProviderInfo {
   description: string;
   requires_api_key: boolean;
   status: string;
+  api_key_configured?: boolean;
 }
 
 export interface MarketConnectionStatus {
   provider: string;
-  state: "DISCONNECTED" | "CONNECTING" | "CONNECTED" | "RECONNECTING" | "ERROR";
+  state: "DISCONNECTED" | "CONNECTING" | "CONNECTED" | "RECONNECTING" | "ERROR" | "STALE" | "NOT_CONFIGURED";
   connected: boolean;
   subscribed_symbols: string[];
   reconnect_count: number;
@@ -391,6 +394,7 @@ export interface MarketConnectionStatus {
   last_error: string | null;
   safety_state?: "SIGNALS_ENABLED" | "SIGNALS_PAUSED";
   session_id?: string;
+  api_key_configured?: boolean;
 }
 
 export interface ProviderStatusEvent {
@@ -406,6 +410,7 @@ export interface ProviderStatusEvent {
   safety_state: "SIGNALS_ENABLED" | "SIGNALS_PAUSED";
   last_heartbeat?: string | null;
   error_message?: string | null;
+  api_key_configured?: boolean;
 }
 
 export interface MarketUpdateEvent {
@@ -442,6 +447,9 @@ export interface PaperOrderRecord {
   rejection_reason?: string | null;
   strategy_name?: string;
   provider?: string;
+  decision_source?: string;
+  model_version?: string | null;
+  jev_mode?: string;
 }
 
 export interface PaperPositionRecord {
@@ -478,6 +486,9 @@ export interface PaperEventRecord {
   realized_pnl?: number;
   status?: string;
   message?: string;
+  decision_source?: string;
+  model_version?: string;
+  jev_decision_mode?: string;
   [key: string]: any;
 }
 
@@ -488,10 +499,11 @@ export interface CreatePaperSessionPayload {
   strategy: string;
   strategy_params?: Record<string, any>;
   provider?: string;
-  mode?: "HISTORICAL_REPLAY" | "REAL_TIME";
+  mode?: "HISTORICAL_REPLAY" | "SYNTHETIC_STREAM" | "REAL_TIME";
   data_provider?: string;
   data_provider_type?: string;
   live_provider?: string;
+  bar_interval?: string;
   max_data_age_seconds?: number;
   max_desync_seconds?: number;
   initial_capital?: number;
