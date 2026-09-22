@@ -1,2 +1,2 @@
 trade_id,symbol,entry_time,exit_time,direction,quantity,entry_price,exit_price,realized_pnl,return_pct,exit_reason,decision_source,model_version,jev_mode
-bd42702e,AAPL,2026-09-23T10:00:15+00:00,2026-09-23T10:00:45+00:00,,130.0,153.0765,156.9215,0.0,0.0,,RULE_BASED,,NONE
+f59502c8,AAPL,2026-09-23T10:00:15+00:00,2026-09-23T10:00:45+00:00,,130.0,153.0765,156.9215,0.0,0.0,,RULE_BASED,,NONE

@@ -16,6 +16,8 @@ def test_docs_and_assets_exist():
         "docs/limitations.md",
         "docs/project-summary.md",
         "docs/release-checklist.md",
+        "docs/technical-design.md",
+        "configs/demo.json",
         "README.md",
     ]
     for doc in core_docs:
@@ -45,8 +47,9 @@ def test_benchmarks_doc_disclaimer():
     benchmarks_path = root_dir / "docs" / "benchmarks.md"
 
     content = benchmarks_path.read_text(encoding="utf-8")
-    assert "disclaimer: local synthetic benchmarks" in content.lower()
-    assert "zero profitability implication" in content.lower()
+    assert "local synthetic software-performance benchmark" in content.lower()
+    assert "measured on deterministic gbm datasets in the development environment" in content.lower()
+    assert "zero claims of trading profitability" in content.lower()
     assert "purely computer science achievements" in content.lower()
 
 

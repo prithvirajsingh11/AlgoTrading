@@ -1,13 +1,13 @@
 # Quantitative Research Experiment Report: `exp_8bf3f6e37872`
 
-> **Institutional Notice**: This experiment was executed within AlgoTrade's discrete-event simulation engine. All trades are simulated with modeled transaction costs and zero lookahead bias. Zero live brokerage connections or real monetary orders.
+> **SIMULATION / RESEARCH PLATFORM — NOT REAL-MONEY TRADING SOFTWARE**: This experiment was executed within AlgoTrade's discrete-event simulation engine. All trades are simulated with modeled transaction costs and zero lookahead bias. Zero live brokerage connections or real monetary orders.
 
 ## 1. Experiment Overview & Reproducibility
 
 - **Experiment ID**: `exp_8bf3f6e37872`
 - **Reproducibility Hash (SHA-256)**: `8bf3f6e378725adc167504e825fb12de3db09aa89118139df957bf9297f1283c`
-- **Execution Date**: `2026-09-22T18:57:12.653068+00:00`
-- **Runtime**: `633.45 ms`
+- **Execution Date**: `2026-09-22T19:13:42.018489+00:00`
+- **Runtime**: `624.68 ms`
 - **Total Bars Processed**: `5000`
 
 ## 2. Research Configuration & Execution Assumptions

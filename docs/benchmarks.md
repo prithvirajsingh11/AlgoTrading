@@ -1,9 +1,16 @@
 # AlgoTrade System Performance & Microsecond Benchmark Report
 
 > **DISCLAIMER: LOCAL SYNTHETIC BENCHMARKS**
-> All metrics recorded below evaluate local algorithmic software execution, memory allocation, and data pipeline throughput on synthetic/historical test fixtures.
-> - **NOT Production Exchange Latency**: These measurements do not reflect wide-area network (WAN) transit delays, broker co-location round-trips, SIP feed distribution jitter, or exchange matching engine queue times.
-> - **ZERO Profitability Implication**: High-throughput backtesting and low execution overhead are purely computer science achievements and do NOT guarantee trading alpha, execution quality on live books, or strategy profitability.
+> All metrics recorded below represent a **local synthetic software-performance benchmark**, **measured on deterministic GBM datasets in the development environment**.
+>
+> Benchmark results do **NOT** represent:
+> - Exchange latency
+> - Brokerage execution latency
+> - Production infrastructure performance
+> - Trading profitability
+> - Investment performance
+>
+> High-throughput backtesting and low execution overhead are purely computer science achievements and do not guarantee trading alpha, execution quality on live books, or strategy profitability. Zero claims of trading profitability are made.
 
 ---
 
@@ -15,17 +22,17 @@ AlgoTrade incorporates an integrated microsecond-precision benchmarking suite (`
 python -m backend.app.cli benchmark --bars 1000
 ```
 
-The benchmark rigorously measures execution throughput, incremental latency, and peak memory overhead across 7 critical system layers:
+The benchmark engine measures 7 subsystems on local hardware:
 
-| Layer | Subsystem Under Test | Measured Metric | Measured Performance | Institutional Target | Status |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **1** | **Dataset Ingestion** | Ingestion Throughput | **123,047 bars/sec** | $\ge 5,000$ bars/sec | **PASS (+2,360%)** |
-| **2** | **Streaming Feature Engine** | Incremental Bar Latency | **18.7 µs / bar** (53,475 bars/s) | $\le 5,000$ µs / bar | **PASS (+26,600%)** |
-| **3** | **Strategy Signal Generation** | Signal Compute Latency | **12.4 µs / bar** (80,645 bars/s) | $\le 1,000$ µs / bar | **PASS (+7,900%)** |
-| **4** | **Discrete-Event Backtest** | Event Simulation Throughput | **2,418 bars/sec** | $\ge 200$ bars/sec | **PASS (+1,100%)** |
-| **5** | **Paper Replay Step** | Step Execution Latency | **1,120 µs / step** | $\le 5,000$ µs / step | **PASS (+346%)** |
-| **6** | **WebSocket Serialization** | Event JSON Serialization | **18,450 msgs/sec** | $\ge 1,000$ msgs/sec | **PASS (+1,745%)** |
-| **7** | **Memory Footprint** | Peak Memory Delta | **0.84 MB** | $\le 50.0$ MB | **PASS (+5,850%)** |
+| # | Subsystem | Measured Metric | Measured Performance | Performance Target | Status |
+| :- | :--- | :--- | :--- | :--- | :--- |
+| **1** | **Dataset ingestion** | Ingestion Throughput | **123,047 bars/sec** | $\ge 5,000$ bars/sec | **PASS (+2,360%)** |
+| **2** | **Streaming feature engine** | Incremental Bar Latency | **18.7 µs / bar** (53,475 bars/s) | $\le 5,000$ µs / bar | **PASS (+26,600%)** |
+| **3** | **Strategy signal generation** | Signal Compute Latency | **12.4 µs / bar** (80,645 bars/s) | $\le 1,000$ µs / bar | **PASS (+7,900%)** |
+| **4** | **Event-driven backtesting** | Event Simulation Throughput | **2,418 bars/sec** | $\ge 200$ bars/sec | **PASS (+1,100%)** |
+| **5** | **Paper-step replay** | Step Execution Latency | **1,120 µs / step** | $\le 5,000$ µs / step | **PASS (+346%)** |
+| **6** | **WebSocket serialization** | Event JSON Serialization | **18,450 msgs/sec** | $\ge 1,000$ msgs/sec | **PASS (+1,745%)** |
+| **7** | **Peak memory allocation** | Peak Memory Delta | **0.84 MB** | $\le 50.0$ MB | **PASS (+5,850%)** |
 
 ---
 

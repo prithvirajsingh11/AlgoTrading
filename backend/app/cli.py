@@ -217,7 +217,7 @@ def demo_command(config_path_str: str = "configs/demo.json") -> int:
             pass
 
     print("=" * 72)
-    print(f"    AlgoTrade v{settings.version} -- Institutional Quant Research & Paper Engine")
+    print(f"    AlgoTrade v{settings.version} -- Quantitative Research & Paper-Trading Platform")
     print("=" * 72)
     print("[STATUS: DEMO / SIMULATION -- ZERO REAL MONEY -- PURE RESEARCH LABORATORY]\n")
 

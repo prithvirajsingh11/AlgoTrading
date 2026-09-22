@@ -1,7 +1,7 @@
 {
   "session": {
-    "session_id": "paper_db2e025b77",
-    "created_at": "2026-09-22T18:57:17.783347+00:00",
+    "session_id": "paper_cb6834e69c",
+    "created_at": "2026-09-22T19:13:46.427133+00:00",
     "started_at": null,
     "stopped_at": null,
     "dataset_id": "AAPL",
@@ -211,7 +211,7 @@
   ],
   "trades": [
     {
-      "trade_id": "bd42702e",
+      "trade_id": "f59502c8",
       "symbol": "AAPL",
       "side": "BUY",
       "quantity": 130.0,
@@ -230,8 +230,8 @@
   ],
   "orders": [
     {
-      "order_id": "ord_a8217cee",
-      "session_id": "paper_db2e025b77",
+      "order_id": "ord_232f3dba",
+      "session_id": "paper_cb6834e69c",
       "timestamp": "2026-09-23T10:00:15+00:00",
       "symbol": "AAPL",
       "side": "BUY",
@@ -250,8 +250,8 @@
       "jev_mode": "NONE"
     },
     {
-      "order_id": "ord_b9c51484",
-      "session_id": "paper_db2e025b77",
+      "order_id": "ord_c6a45da5",
+      "session_id": "paper_cb6834e69c",
       "timestamp": "2026-09-23T10:00:45+00:00",
       "symbol": "AAPL",
       "side": "SELL",
@@ -270,8 +270,8 @@
       "jev_mode": "NONE"
     },
     {
-      "order_id": "ord_c07b7273",
-      "session_id": "paper_db2e025b77",
+      "order_id": "ord_a845c122",
+      "session_id": "paper_cb6834e69c",
       "timestamp": "2026-09-23T10:01:10+00:00",
       "symbol": "AAPL",
       "side": "BUY",
@@ -292,9 +292,9 @@
   ],
   "events_sample": [
     {
-      "timestamp": "2026-09-22T18:57:17.783347+00:00",
+      "timestamp": "2026-09-22T19:13:46.427133+00:00",
       "event_type": "SESSION_CREATED",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "status": "CREATED",
       "current_bar": 0,
       "total_bars": 0,
@@ -303,7 +303,7 @@
     {
       "timestamp": "2026-09-23T10:00:00+00:00",
       "event_type": "MARKET_BAR",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "symbol": "AAPL",
       "open": 149.8,
       "high": 150.3,
@@ -316,7 +316,7 @@
     {
       "timestamp": "2026-09-23T10:00:00+00:00",
       "event_type": "PORTFOLIO_SNAPSHOT",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "total_equity": 100000.0,
       "cash": 100000.0,
       "realized_pnl": 0.0,
@@ -327,7 +327,7 @@
     {
       "timestamp": "2026-09-23T10:00:05+00:00",
       "event_type": "MARKET_BAR",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "symbol": "AAPL",
       "open": 149.8,
       "high": 150.3,
@@ -340,7 +340,7 @@
     {
       "timestamp": "2026-09-23T10:00:05+00:00",
       "event_type": "PORTFOLIO_SNAPSHOT",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "total_equity": 100000.0,
       "cash": 100000.0,
       "realized_pnl": 0.0,
@@ -351,7 +351,7 @@
     {
       "timestamp": "2026-09-23T10:00:10+00:00",
       "event_type": "MARKET_BAR",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "symbol": "AAPL",
       "open": 149.8,
       "high": 150.3,
@@ -364,7 +364,7 @@
     {
       "timestamp": "2026-09-23T10:00:10+00:00",
       "event_type": "PORTFOLIO_SNAPSHOT",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "total_equity": 100000.0,
       "cash": 100000.0,
       "realized_pnl": 0.0,
@@ -375,7 +375,7 @@
     {
       "timestamp": "2026-09-23T10:00:15+00:00",
       "event_type": "MARKET_BAR",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "symbol": "AAPL",
       "open": 152.8,
       "high": 153.3,
@@ -388,7 +388,7 @@
     {
       "timestamp": "2026-09-23T10:00:15+00:00",
       "event_type": "STRATEGY_SIGNAL",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "symbol": "AAPL",
       "signal_type": "BUY",
       "strength": 1.0,
@@ -407,7 +407,7 @@
     {
       "timestamp": "2026-09-23T10:00:15+00:00",
       "event_type": "RISK_VALIDATION",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "symbol": "AAPL",
       "approved": true,
       "reason": null,
@@ -417,8 +417,8 @@
     {
       "timestamp": "2026-09-23T10:00:15+00:00",
       "event_type": "ORDER_FILLED",
-      "session_id": "paper_db2e025b77",
-      "order_id": "ord_a8217cee",
+      "session_id": "paper_cb6834e69c",
+      "order_id": "ord_232f3dba",
       "symbol": "AAPL",
       "side": "BUY",
       "quantity": 130.0,
@@ -429,7 +429,7 @@
     {
       "timestamp": "2026-09-23T10:00:15+00:00",
       "event_type": "PORTFOLIO_SNAPSHOT",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "total_equity": 99979.11,
       "cash": 80089.11,
       "realized_pnl": 0.0,
@@ -451,7 +451,7 @@
     {
       "timestamp": "2026-09-23T10:00:20+00:00",
       "event_type": "MARKET_BAR",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "symbol": "AAPL",
       "open": 155.8,
       "high": 156.3,
@@ -464,7 +464,7 @@
     {
       "timestamp": "2026-09-23T10:00:20+00:00",
       "event_type": "PORTFOLIO_SNAPSHOT",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "total_equity": 100369.11,
       "cash": 80089.11,
       "realized_pnl": 0.0,
@@ -486,7 +486,7 @@
     {
       "timestamp": "2026-09-23T10:00:25+00:00",
       "event_type": "MARKET_BAR",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "symbol": "AAPL",
       "open": 157.8,
       "high": 158.3,
@@ -499,7 +499,7 @@
     {
       "timestamp": "2026-09-23T10:00:25+00:00",
       "event_type": "PORTFOLIO_SNAPSHOT",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "total_equity": 100629.11,
       "cash": 80089.11,
       "realized_pnl": 0.0,
@@ -521,7 +521,7 @@
     {
       "timestamp": "2026-09-23T10:00:30+00:00",
       "event_type": "MARKET_BAR",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "symbol": "AAPL",
       "open": 159.8,
       "high": 160.3,
@@ -534,7 +534,7 @@
     {
       "timestamp": "2026-09-23T10:00:30+00:00",
       "event_type": "PORTFOLIO_SNAPSHOT",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "total_equity": 100889.11,
       "cash": 80089.11,
       "realized_pnl": 0.0,
@@ -556,7 +556,7 @@
     {
       "timestamp": "2026-09-23T10:00:35+00:00",
       "event_type": "MARKET_BAR",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "symbol": "AAPL",
       "open": 161.8,
       "high": 162.3,
@@ -569,7 +569,7 @@
     {
       "timestamp": "2026-09-23T10:00:35+00:00",
       "event_type": "PORTFOLIO_SNAPSHOT",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "total_equity": 101149.11,
       "cash": 80089.11,
       "realized_pnl": 0.0,
@@ -591,7 +591,7 @@
     {
       "timestamp": "2026-09-23T10:00:40+00:00",
       "event_type": "MARKET_BAR",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "symbol": "AAPL",
       "open": 159.8,
       "high": 160.3,
@@ -604,7 +604,7 @@
     {
       "timestamp": "2026-09-23T10:00:40+00:00",
       "event_type": "PORTFOLIO_SNAPSHOT",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "total_equity": 100889.11,
       "cash": 80089.11,
       "realized_pnl": 0.0,
@@ -626,7 +626,7 @@
     {
       "timestamp": "2026-09-23T10:00:45+00:00",
       "event_type": "MARKET_BAR",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "symbol": "AAPL",
       "open": 156.8,
       "high": 157.3,
@@ -639,7 +639,7 @@
     {
       "timestamp": "2026-09-23T10:00:45+00:00",
       "event_type": "STRATEGY_SIGNAL",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "symbol": "AAPL",
       "signal_type": "SELL",
       "strength": 1.0,
@@ -657,7 +657,7 @@
     {
       "timestamp": "2026-09-23T10:00:45+00:00",
       "event_type": "RISK_VALIDATION",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "symbol": "AAPL",
       "approved": true,
       "reason": null,
@@ -667,8 +667,8 @@
     {
       "timestamp": "2026-09-23T10:00:45+00:00",
       "event_type": "ORDER_FILLED",
-      "session_id": "paper_db2e025b77",
-      "order_id": "ord_b9c51484",
+      "session_id": "paper_cb6834e69c",
+      "order_id": "ord_c6a45da5",
       "symbol": "AAPL",
       "side": "SELL",
       "quantity": 130.0,
@@ -679,7 +679,7 @@
     {
       "timestamp": "2026-09-23T10:00:45+00:00",
       "event_type": "PORTFOLIO_SNAPSHOT",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "total_equity": 100477.7,
       "cash": 100477.7,
       "realized_pnl": 478.45,
@@ -690,7 +690,7 @@
     {
       "timestamp": "2026-09-23T10:00:50+00:00",
       "event_type": "MARKET_BAR",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "symbol": "AAPL",
       "open": 152.8,
       "high": 153.3,
@@ -703,7 +703,7 @@
     {
       "timestamp": "2026-09-23T10:00:50+00:00",
       "event_type": "PORTFOLIO_SNAPSHOT",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "total_equity": 100477.7,
       "cash": 100477.7,
       "realized_pnl": 478.45,
@@ -714,7 +714,7 @@
     {
       "timestamp": "2026-09-23T10:00:55+00:00",
       "event_type": "MARKET_BAR",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "symbol": "AAPL",
       "open": 149.8,
       "high": 150.3,
@@ -727,7 +727,7 @@
     {
       "timestamp": "2026-09-23T10:00:55+00:00",
       "event_type": "PORTFOLIO_SNAPSHOT",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "total_equity": 100477.7,
       "cash": 100477.7,
       "realized_pnl": 478.45,
@@ -738,7 +738,7 @@
     {
       "timestamp": "2026-09-23T10:01:00+00:00",
       "event_type": "MARKET_BAR",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "symbol": "AAPL",
       "open": 147.8,
       "high": 148.3,
@@ -751,7 +751,7 @@
     {
       "timestamp": "2026-09-23T10:01:00+00:00",
       "event_type": "PORTFOLIO_SNAPSHOT",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "total_equity": 100477.7,
       "cash": 100477.7,
       "realized_pnl": 478.45,
@@ -762,7 +762,7 @@
     {
       "timestamp": "2026-09-23T10:01:05+00:00",
       "event_type": "MARKET_BAR",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "symbol": "AAPL",
       "open": 148.8,
       "high": 149.3,
@@ -775,7 +775,7 @@
     {
       "timestamp": "2026-09-23T10:01:05+00:00",
       "event_type": "PORTFOLIO_SNAPSHOT",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "total_equity": 100477.7,
       "cash": 100477.7,
       "realized_pnl": 478.45,
@@ -786,7 +786,7 @@
     {
       "timestamp": "2026-09-23T10:01:10+00:00",
       "event_type": "MARKET_BAR",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "symbol": "AAPL",
       "open": 149.8,
       "high": 150.3,
@@ -799,7 +799,7 @@
     {
       "timestamp": "2026-09-23T10:01:10+00:00",
       "event_type": "STRATEGY_SIGNAL",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "symbol": "AAPL",
       "signal_type": "BUY",
       "strength": 1.0,
@@ -818,7 +818,7 @@
     {
       "timestamp": "2026-09-23T10:01:10+00:00",
       "event_type": "RISK_VALIDATION",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "symbol": "AAPL",
       "approved": true,
       "reason": null,
@@ -828,8 +828,8 @@
     {
       "timestamp": "2026-09-23T10:01:10+00:00",
       "event_type": "ORDER_FILLED",
-      "session_id": "paper_db2e025b77",
-      "order_id": "ord_c07b7273",
+      "session_id": "paper_cb6834e69c",
+      "order_id": "ord_a845c122",
       "symbol": "AAPL",
       "side": "BUY",
       "quantity": 133.0,
@@ -840,7 +840,7 @@
     {
       "timestamp": "2026-09-23T10:01:10+00:00",
       "event_type": "PORTFOLIO_SNAPSHOT",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "total_equity": 100456.75,
       "cash": 80506.75,
       "realized_pnl": 478.45,
@@ -862,7 +862,7 @@
     {
       "timestamp": "2026-09-23T10:01:15+00:00",
       "event_type": "MARKET_BAR",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "symbol": "AAPL",
       "open": 150.8,
       "high": 151.3,
@@ -875,7 +875,7 @@
     {
       "timestamp": "2026-09-23T10:01:15+00:00",
       "event_type": "PORTFOLIO_SNAPSHOT",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "total_equity": 100589.75,
       "cash": 80506.75,
       "realized_pnl": 478.45,
@@ -897,7 +897,7 @@
     {
       "timestamp": "2026-09-23T10:01:20+00:00",
       "event_type": "MARKET_BAR",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "symbol": "AAPL",
       "open": 151.8,
       "high": 152.3,
@@ -910,7 +910,7 @@
     {
       "timestamp": "2026-09-23T10:01:20+00:00",
       "event_type": "PORTFOLIO_SNAPSHOT",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "total_equity": 100722.75,
       "cash": 80506.75,
       "realized_pnl": 478.45,
@@ -932,7 +932,7 @@
     {
       "timestamp": "2026-09-23T10:01:25+00:00",
       "event_type": "MARKET_BAR",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "symbol": "AAPL",
       "open": 151.8,
       "high": 152.3,
@@ -945,7 +945,7 @@
     {
       "timestamp": "2026-09-23T10:01:25+00:00",
       "event_type": "PORTFOLIO_SNAPSHOT",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "total_equity": 100722.75,
       "cash": 80506.75,
       "realized_pnl": 478.45,
@@ -967,7 +967,7 @@
     {
       "timestamp": "2026-09-23T10:01:30+00:00",
       "event_type": "MARKET_BAR",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "symbol": "AAPL",
       "open": 151.8,
       "high": 152.3,
@@ -980,7 +980,7 @@
     {
       "timestamp": "2026-09-23T10:01:30+00:00",
       "event_type": "PORTFOLIO_SNAPSHOT",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "total_equity": 100722.75,
       "cash": 80506.75,
       "realized_pnl": 478.45,
@@ -1002,7 +1002,7 @@
     {
       "timestamp": "2026-09-23T10:01:35+00:00",
       "event_type": "MARKET_BAR",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "symbol": "AAPL",
       "open": 151.8,
       "high": 152.3,
@@ -1015,7 +1015,7 @@
     {
       "timestamp": "2026-09-23T10:01:35+00:00",
       "event_type": "PORTFOLIO_SNAPSHOT",
-      "session_id": "paper_db2e025b77",
+      "session_id": "paper_cb6834e69c",
       "total_equity": 100722.75,
       "cash": 80506.75,
       "realized_pnl": 478.45,

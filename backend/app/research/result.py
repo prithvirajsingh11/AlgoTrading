@@ -97,7 +97,7 @@ class ExperimentResult:
         return cls.from_dict(json.loads(json_str))
 
     def to_markdown(self) -> str:
-        """Generates a clean, reproducible markdown report for institutional evaluation."""
+        """Generates a clean, reproducible markdown report for research evaluation."""
         m = self.metrics or {}
         cfg = self.config or {}
         ds_cfg = cfg.get("dataset", {})
@@ -110,7 +110,7 @@ class ExperimentResult:
         lines = [
             f"# Quantitative Research Experiment Report: `{self.experiment_id}`",
             "",
-            "> **Institutional Notice**: This experiment was executed within AlgoTrade's discrete-event simulation engine. All trades are simulated with modeled transaction costs and zero lookahead bias. Zero live brokerage connections or real monetary orders.",
+            "> **SIMULATION / RESEARCH PLATFORM — NOT REAL-MONEY TRADING SOFTWARE**: This experiment was executed within AlgoTrade's discrete-event simulation engine. All trades are simulated with modeled transaction costs and zero lookahead bias. Zero live brokerage connections or real monetary orders.",
             "",
             "## 1. Experiment Overview & Reproducibility",
             "",

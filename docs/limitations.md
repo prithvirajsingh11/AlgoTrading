@@ -1,6 +1,7 @@
 # AlgoTrade Platform Engineering & Quantitative Finance Limitations
 
-> **Academic & Institutional Notice**: Quantitative modeling is subject to fundamental mathematical, structural, and practical limitations. AlgoTrade is strictly an educational, scientific research, and simulated paper-trading platform. This document explicitly outlines known modeling assumptions and system boundaries.
+> **SIMULATION / RESEARCH PLATFORM — NOT REAL-MONEY TRADING SOFTWARE**
+> Quantitative modeling is subject to fundamental mathematical, structural, and practical limitations. AlgoTrade is strictly an educational, scientific research, and simulated paper-trading platform built with production-oriented engineering practices. This document explicitly outlines known modeling assumptions and system boundaries.
 
 ---
 
@@ -47,7 +48,7 @@
 
 ## 3. Explicit Non-Claims
 
-To ensure complete institutional transparency, AlgoTrade makes **ZERO** claims regarding:
+To ensure complete transparency, AlgoTrade makes **ZERO** claims regarding:
 1. **Trading Profitability**: Past simulated performance in backtests or paper sessions does not indicate future results.
 2. **Predictive Accuracy**: Machine learning predictions are probabilistic indicators, not deterministic forecasts.
 3. **Exchange Execution Speed**: Software microsecond benchmarks measure local CPU processing time, not live exchange execution latency.
