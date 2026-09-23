@@ -11,6 +11,7 @@ def test_docs_and_assets_exist():
 
     # Core doc files
     core_docs = [
+        "docs/architecture.md",
         "docs/architecture.svg",
         "docs/benchmarks.md",
         "docs/limitations.md",

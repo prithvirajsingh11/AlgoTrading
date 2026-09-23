@@ -1,4 +1,4 @@
-# AlgoTrade — Quantitative Research, Event-Driven Backtesting & Real-Time Paper Trading Platform
+# AlgoTrade
 
 [![CI Pipeline](https://github.com/prithvirajsingh11/AlgoTrading/actions/workflows/ci.yml/badge.svg)](https://github.com/prithvirajsingh11/AlgoTrading/actions/workflows/ci.yml)
 [![Version](https://img.shields.io/badge/version-v1.0.0-blue.svg)](backend/app/core/config.py)
@@ -7,27 +7,26 @@
 [![React 18](https://img.shields.io/badge/React-18.3+-61DAFB.svg)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.6+-3178C6.svg)](https://www.typescriptlang.org/)
 [![Vite](https://img.shields.io/badge/Vite-5.4+-646CFF.svg)](https://vitejs.dev/)
-[![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](backend/tests)
+[![Tests](https://img.shields.io/badge/tests-229%20passed-brightgreen.svg)](backend/tests)
 [![Code Splitting](https://img.shields.io/badge/bundle-code--split%20%28171%20KB%20core%29-emerald.svg)](frontend)
 
 > **SIMULATION / RESEARCH PLATFORM — NOT REAL-MONEY TRADING SOFTWARE**
+>
 > AlgoTrade is strictly a quantitative research, deterministic backtesting, and paper-trading simulation platform built with production-oriented engineering practices. It contains **zero live-broker order execution endpoints** and executes **zero real-money financial transactions**. All orders route strictly to `SimulatedBroker`.
 
 ---
 
-## 1. One-Sentence Description
+## Overview
+
+### One-Sentence Description
 A portfolio-ready, full-stack quantitative research, event-driven backtesting, and real-time paper-trading platform engineered in Python (FastAPI) and TypeScript (React) to demonstrate rigorous financial engineering, deterministic reproducibility, and production-oriented software design.
 
----
-
-## 2. Overview
+### Summary
 AlgoTrade bridges the divide between theoretical quantitative research and production-oriented trading software. Designed from first principles, it provides a comprehensive end-to-end environment for strategy formulation, statistical arbitrage, machine learning cross-validation, LLM-assisted advisory reasoning, discrete-event backtesting, and real-time paper trading with WebSocket streaming.
 
 The platform eliminates common backtesting pitfalls—such as lookahead bias, survivorship bias, unrealistic instant fills, and unmodeled transaction costs—by utilizing discrete-event processing, strict point-in-time data scoping, intrabar high/low crossing logic, gap execution modeling, basis-point slippage, and quadratic market impact simulation.
 
----
-
-## 3. Why I Built This
+### Why I Built This
 Most open-source algorithmic trading frameworks suffer from several systemic flaws:
 1. **Vectorized Lookahead Leakage**: Many backtesters evaluate signals across entire pandas dataframes at once, accidentally leaking future prices into historical decision timestamps.
 2. **Naive Execution Assumptions**: Theoretical backtests often assume orders fill instantly at the bar close price without slippage, market impact, or commission friction.
@@ -38,7 +37,21 @@ AlgoTrade was built to solve these challenges with rigorous software engineering
 
 ---
 
-## 4. Architecture
+## Features
+
+- **Discrete-Event Simulation Engine**: Bar-by-bar queue with strictly chronological execution.
+- **Strict Zero-Lookahead Scoping**: Mathematical guarantee that bar $t$ evaluates only data from slice $[0 \dots t]$.
+- **Execution Modeling**: Realistic intrabar stop crossing, overnight gap handling, fixed basis-point slippage, quadratic market impact, and configurable commission structures.
+- **Statistical Arbitrage**: Multi-asset pairs trading with rolling dynamic OLS hedge ratio $\beta = \frac{\text{Cov}(P_1, P_2)}{\text{Var}(P_2)}$ and atomic dual-leg execution.
+- **Supervised ML Pipeline**: XGBoost classification predicting directional returns with purged time-series cross-validation and SHA-256 schema verification.
+- **Jev AI Advisory Layer**: Quantitative context formulation with zero lookahead, deterministic caching, and graceful fallback to rule-based execution.
+- **Interactive Paper Trading**: Live tick-to-bar aggregation, bounded streaming feature updates, and crash recovery with SQLite WAL persistence.
+- **Safety Circuit Breakers**: Stale data watchdog (auto-pauses signals after 30s silence) and portfolio drawdown auto-liquidation.
+- **Comprehensive Reporting**: Multi-format exports (JSON, CSV, Markdown) with SHA-256 cryptographic provenance.
+
+---
+
+## Architecture
 
 ![AlgoTrade System Architecture](docs/architecture.svg)
 
@@ -86,26 +99,25 @@ AlgoTrade was built to solve these challenges with rigorous software engineering
                                      [ React 18 / TypeScript Console ]
                                      - Lazy-loaded modular chunks (171 KB core)
                                      - Runtime UI ErrorBoundary protection
-                                     - Recharts institutional performance curves
+                                     - Recharts portfolio performance curves
 ```
 
----
-
-## 5. Core Features
-- **Discrete-Event Simulation Engine**: Bar-by-bar queue with strictly chronological execution.
-- **Strict Zero-Lookahead Scoping**: Mathematical guarantee that bar $t$ evaluates only data from slice $[0 \dots t]$.
-- **Execution Modeling**: Realistic intrabar stop crossing, overnight gap handling, fixed basis-point slippage, quadratic market impact, and configurable commission structures.
-- **Statistical Arbitrage**: Multi-asset pairs trading with rolling dynamic OLS hedge ratio $\beta = \frac{\text{Cov}(P_1, P_2)}{\text{Var}(P_2)}$ and atomic dual-leg execution.
-- **Supervised ML Pipeline**: XGBoost classification predicting directional returns with purged time-series cross-validation and SHA-256 schema verification.
-- **Jev AI Advisory Layer**: Quantitative context formulation with zero lookahead, deterministic caching, and graceful fallback to rule-based execution.
-- **Interactive Paper Trading**: Live tick-to-bar aggregation, bounded streaming feature updates, and crash recovery with SQLite WAL persistence.
-- **Safety Circuit Breakers**: Stale data watchdog (auto-pauses signals after 30s silence) and portfolio drawdown auto-liquidation.
-- **Comprehensive Reporting**: Multi-format exports (JSON, CSV, Markdown) with SHA-256 cryptographic provenance.
+Detailed technical breakdown available in [`docs/architecture.md`](docs/architecture.md) and [`docs/technical-design.md`](docs/technical-design.md).
 
 ---
 
-## 6. Trading Strategies
-AlgoTrade ships with four production-tested quantitative strategies:
+## Technology Stack
+
+- **Backend**: Python 3.11+, FastAPI, Pydantic v2, NumPy, Pandas, SciPy, XGBoost, Uvicorn, SQLite (WAL mode).
+- **Frontend**: React 18, TypeScript 5.6+, Vite 5.4+, TailwindCSS, Lucide Icons, Recharts.
+- **Testing & Verification**: Pytest, Pytest-Asyncio, Vitest, Testing Library, ESLint, Static AST Scanners.
+- **DevOps**: Docker (multi-stage non-root), GitHub Actions CI/CD.
+
+---
+
+## Quantitative Strategies
+
+AlgoTrade includes four production-tested quantitative strategies:
 
 1. **Moving Average Crossover (`MovingAverageCrossover`)**:
    - Classical trend-following identifying regime shifts between fast ($N_{fast}$) and slow ($N_{slow}$) exponential moving averages.
@@ -120,51 +132,23 @@ AlgoTrade ships with four production-tested quantitative strategies:
 
 ---
 
-## 7. Risk Management
-Risk controls are enforced authoritatively by `RiskManager` before any order is submitted to `SimulatedBroker`:
-- **Capital Allocation Bounds**: Prevents any single position from exceeding a maximum fraction of total portfolio equity (default: 20%).
-- **Gross Leverage Limits**: Restricts aggregate long and short exposure to predefined regulatory thresholds.
-- **Drawdown Circuit Breaker**: Continuously evaluates high-water mark equity; halts new order generation if peak-to-trough drawdown exceeds configurable limits (default: 15%).
-- **Order Size Validation**: Enforces minimum/maximum lot sizes and validates sufficient available cash and margin before dispatch.
+## Machine Learning
 
----
-
-## 8. Backtesting
-The backtest engine operates on an immutable chronological event loop:
-- **Order Execution Lifecycle**: Market orders execute at next-bar Open; Stop-Loss and Take-Profit orders monitor High/Low ranges for realistic intrabar crossing.
-- **Overnight Gap Down Logic**: If an asset opens below a protective stop price, the fill occurs at the Open price rather than the theoretical stop price.
-- **Quantitative Metrics**:
-  - Annualized Return (CAGR)
-  - Annualized Volatility
-  - Sharpe Ratio ($R_f = 0.0$)
-  - Sortino Ratio (downside semivariance)
-  - Maximum Drawdown (%) and Peak-to-Trough Duration
-  - Win Rate (%) and Profit Factor ($\frac{\sum \text{Gains}}{\sum |\text{Losses}|}$)
-  - Calmar Ratio and Expectancy per Trade
-
----
-
-## 9. Research & Reproducibility
-- **Walk-Forward Optimization**: Evaluates strategy parameters across rolling train/test windows ($Train \to Test \to Shift$) to quarantine out-of-sample data and diagnose parameter decay.
-- **Parameter Sweeps**: Grid search across multi-dimensional hyperparameter spaces with concurrent evaluation.
-- **Cryptographic Provenance**: Every experiment run generates a deterministic SHA-256 hash derived from the exact strategy parameters, dataset metadata, and execution assumptions.
-- **Non-Throwing Dataset Validation**: Scans datasets for chronological inversions, timestamp duplicates, non-positive prices, NaNs, and volume anomalies without crashing.
-
----
-
-## 10. Machine Learning
 AlgoTrade integrates an end-to-end supervised machine learning pipeline:
+
 - **Feature Engineering**: Incremental technical features including multi-period returns, rolling volatility, RSI, MACD, and Bollinger band widths.
 - **Purged Cross-Validation**: Prevents information leakage between adjacent bars by introducing purge windows between training and testing folds.
 - **Model Training**: XGBoost binary classifier predicting whether forward $k$-period return exceeds transaction cost thresholds.
 - **Artifact Verification**: Serialized models include a SHA-256 feature schema hash, preventing inference with mismatched feature sets.
-- **Classification vs. Trading Performance**: Machine learning metrics (Accuracy, ROC-AUC, F1 score, Log Loss) evaluate statistical return predictability and are strictly distinguished from trading performance metrics (Sharpe ratio, CAGR, Max Drawdown). High classification accuracy does not guarantee trading profitability due to execution slippage, spread, and transaction costs.
+- **Classification vs. Trading Performance**: Machine learning metrics (Accuracy, ROC-AUC, F1 score, Log Loss) evaluate statistical return predictability and are strictly quarantined from trading performance metrics (Sharpe ratio, CAGR, Max Drawdown). High classification accuracy does not guarantee trading profitability due to execution slippage, spread, and transaction costs.
 
 ---
 
-## 11. Jev AI Advisory/Decision Layer
+## Jev Decision Layer
+
 AlgoTrade features a structured AI advisory layer powered by Jev / SystemOne:
-- **Advisory Role**: Operates strictly as an advisory overlay on top of deterministic quantitative strategies, never as a guaranteed predictor, profitable trading oracle, autonomous live trader, or guaranteed decision maker.
+
+- **Advisory Role**: Operates strictly as an advisory overlay on top of deterministic quantitative strategies, never as a guaranteed predictive system, profitable trading oracle, autonomous trader, or guaranteed decision maker.
 - **Quantitative Context Packaging**: Packages point-in-time market data, technical indicators, and current portfolio positions into a structured JSON payload without future leakage.
 - **Deterministic Caching**: Caches responses against the SHA-256 hash of the input context to prevent redundant inference calls.
 - **Operating Modes**:
@@ -175,8 +159,10 @@ AlgoTrade features a structured AI advisory layer powered by Jev / SystemOne:
 
 ---
 
-## 12. Real-Time Market Data
+## Market Data
+
 AlgoTrade provides a vendor-agnostic real-time market data streaming architecture:
+
 - **Provider Abstraction (`RealTimeMarketDataProvider`)**: Standardized interface for live and streaming feeds.
 - **Alpaca WebSocket v2 Adapter**: Concrete adapter supporting live quote and trade streaming with zero credential leakage in logs or responses.
 - **Tick-to-Bar Aggregator (`TickToBarAggregator`)**: Aggregates raw trades into time-bucketed OHLCV bars in memory.
@@ -185,8 +171,10 @@ AlgoTrade provides a vendor-agnostic real-time market data streaming architectur
 
 ---
 
-## 13. Paper Trading
+## Paper Trading
+
 The paper trading subsystem provides simulated execution:
+
 - **Deterministic Historical Replay**: Steps through historical bars at controlled replay speeds (0.5x to MAX).
 - **Synthetic Live Streaming**: Generates real-time geometric Brownian motion ticks for offline demonstration and testing.
 - **State Hydration**: Persists positions, trades, orders, and equity curves to SQLite using Write-Ahead Logging (WAL).
@@ -195,8 +183,56 @@ The paper trading subsystem provides simulated execution:
 
 ---
 
-## 14. Three Operating Modes
-AlgoTrade strictly separates its operational workflows into three distinct modes:
+## Research Methodology
+
+AlgoTrade implements an academic-grade quantitative research workflow designed for reproducibility and statistical validity:
+
+- **Walk-Forward Analysis**: Non-overlapping sliding windows ($Train \to Test \to Shift$) quarantining out-of-sample periods to evaluate strategy parameter robustness and diagnose parameter decay.
+- **Parameter Sweeps**: Grid search across multi-dimensional hyperparameter spaces with concurrent evaluation and resource throttling (`max_sweep_combinations = 100`).
+- **Cryptographic Provenance**: Every experiment run generates a deterministic SHA-256 hash derived from the exact strategy parameters, dataset metadata, and execution assumptions.
+- **Dataset Discovery & Non-Throwing Validation**: Scans datasets for chronological inversions, timestamp duplicates, non-positive prices, NaNs, and volume anomalies without crashing.
+
+---
+
+## Look-Ahead Bias Prevention
+
+Eliminating information leakage is a core architectural invariant of AlgoTrade:
+
+1. **Point-in-Time Scoping ($0 \dots t$)**: At any simulation timestamp $t$, strategies and feature pipelines are restricted strictly to historical bars $[0 \dots t]$. Forward prices at $t+1$ are inaccessible.
+2. **Next-Bar Execution Latency**: Signal generation at bar $t$ Close cannot execute at bar $t$ Close; execution fills at bar $t+1$ Open (or bar $t$ Close with explicit latency penalties).
+3. **Purged & Embargoed Cross-Validation**: ML dataset splits enforce purge intervals equal to the forward return horizon plus an embargo window to eliminate serial correlation leakage.
+4. **Context Packaging Isolation**: Jev context packaging computes feature vectors strictly over point-in-time windows without look-ahead indicators.
+
+---
+
+## Risk Management
+
+Risk controls are enforced authoritatively by `RiskManager` before any order is submitted to `SimulatedBroker`:
+
+- **Capital Allocation Bounds**: Prevents any single position from exceeding a maximum fraction of total portfolio equity (default: 20%).
+- **Gross Leverage Limits**: Restricts aggregate long and short exposure to predefined thresholds.
+- **Drawdown Circuit Breaker**: Continuously evaluates high-water mark equity; halts new order generation if peak-to-trough drawdown exceeds configurable limits (default: 15%).
+- **Order Size Validation**: Enforces minimum/maximum lot sizes and validates sufficient available cash and margin before dispatch.
+
+---
+
+## Execution Model
+
+AlgoTrade models realistic exchange microstructure during discrete-event backtesting and paper trading:
+
+- **Intrabar Stop Crossing**: Stop-loss and take-profit orders monitor the full $[Low, High]$ interval of subsequent bars.
+- **Overnight Gap Down Logic**: If an asset opens below a protective stop price, the fill executes at the Open price rather than the theoretical stop price.
+- **Slippage Modeling**: Configurable basis-point slippage ($\Delta P = P \times \frac{\text{bps}}{10000}$) and quadratic market impact modeling:
+  $$\text{Impact} = \alpha \cdot \text{Price} \cdot \left(\frac{\text{OrderQty}}{\text{BarVolume}}\right)^2$$
+- **Dual-Tier Commission Schedule**: Fixed per-ticket dollar fees combined with percentage-of-notional fees.
+- **Double-Entry Ledger Reconciliation**: Tracks cash balance, open positions, realized gains, and mark-to-market unrealized P&L on every bar close.
+
+---
+
+## Three Operational Modes
+
+### Three Operating Modes
+AlgoTrade strictly separates its operational workflows into three distinct operating modes:
 
 | Mode | Market Data Source | Execution Destination | Typical Use Case |
 | :--- | :--- | :--- | :--- |
@@ -204,48 +240,55 @@ AlgoTrade strictly separates its operational workflows into three distinct modes
 | **`SYNTHETIC_STREAM`** | In-memory GBM tick generator (`[SYNTHETIC TEST FEED]`) | `SimulatedBroker` | Offline paper trading, UI demonstration, integration testing |
 | **`REAL_TIME`** | Live external WebSocket feed (e.g. Alpaca v2) | `SimulatedBroker` | Real-time paper trading, forward testing with live market feeds |
 
-> **Safety Notice:** In `REAL_TIME` mode, if API credentials are not provided, the provider transitions cleanly to `NOT_CONFIGURED` without falling back to fake data. Real-time mode is for market data ingestion only; all order execution remains simulated.
+> **Safety Notice:** In `REAL_TIME` mode, if API credentials are not provided, the provider transitions cleanly to `NOT_CONFIGURED` without falling back to fake data. Real-time mode is for market data ingestion only; all order execution remains simulated. `SYNTHETIC_STREAM` is never equated to live trading.
 
 ---
 
-## 15. Performance Benchmarks
-> **DISCLAIMER: LOCAL SYNTHETIC BENCHMARKS**
+## Benchmarks
+
+### Performance Benchmarks
+
+> **DISCLAIMER: LOCAL SYNTHETIC SOFTWARE-PERFORMANCE BENCHMARKS**
 > All metrics recorded below represent a **local synthetic software-performance benchmark**, **measured on deterministic GBM datasets in the development environment**.
 >
-> Benchmark results do **NOT** represent exchange latency, brokerage execution latency, production infrastructure performance, trading profitability, or investment performance. Zero claims of trading profitability are made.
+> Benchmark results do **NOT** represent:
+> - Exchange latency
+> - Brokerage latency
+> - Production HFT performance
+> - Institutional execution performance
+> - Trading profitability or investment performance
+>
+> High throughput and low latency are software-engineering metrics; they do not imply or guarantee investment alpha or strategy profitability. Zero claims of trading profitability are made.
 
-The benchmark engine measures 7 subsystems on local hardware:
+The benchmark engine measures 7 benchmark subsystems on local hardware:
 
-| # | Subsystem | Measured Metric | Measured Performance | Performance Target | Status |
+| # | Benchmark Subsystem | Measured Metric | Measured Performance | Performance Target | Status |
 | :- | :--- | :--- | :--- | :--- | :--- |
-| **1** | **Dataset ingestion** | Ingestion Throughput | **123,047 bars/sec** | $\ge 5,000$ bars/sec | **PASS (+2,360%)** |
-| **2** | **Streaming feature engine** | Incremental Bar Latency | **18.7 µs / bar** (53,475 bars/s) | $\le 5,000$ µs / bar | **PASS (+26,600%)** |
-| **3** | **Strategy signal generation** | Signal Compute Latency | **12.4 µs / bar** (80,645 bars/s) | $\le 1,000$ µs / bar | **PASS (+7,900%)** |
-| **4** | **Event-driven backtesting** | Event Simulation Throughput | **2,418 bars/sec** | $\ge 200$ bars/sec | **PASS (+1,100%)** |
-| **5** | **Paper-step replay** | Step Execution Latency | **1,120 µs / step** | $\le 5,000$ µs / step | **PASS (+346%)** |
-| **6** | **WebSocket serialization** | Event JSON Serialization | **18,450 msgs/sec** | $\ge 1,000$ msgs/sec | **PASS (+1,745%)** |
-| **7** | **Peak memory allocation** | Peak Memory Delta | **0.84 MB** | $\le 50.0$ MB | **PASS (+5,850%)** |
+| **1** | **Dataset Loading Throughput** | Ingestion Throughput | **123,047 bars/sec** | $\ge 5,000$ bars/sec | **PASS (+2,360%)** |
+| **2** | **Streaming Feature Engine** | Incremental Bar Latency | **18.7 µs / bar** (53,475 bars/s) | $\le 5,000$ µs / bar | **PASS (+26,600%)** |
+| **3** | **Strategy Signal Generation** | Signal Compute Latency | **12.4 µs / bar** (80,645 bars/s) | $\le 1,000$ µs / bar | **PASS (+7,900%)** |
+| **4** | **Event-Driven Backtesting** | Event Simulation Throughput | **2,418 bars/sec** | $\ge 200$ bars/sec | **PASS (+1,100%)** |
+| **5** | **Paper Trading Step Replay** | Step Execution Latency | **1,120 µs / step** | $\le 5,000$ µs / step | **PASS (+346%)** |
+| **6** | **WebSocket JSON Serialization** | Event JSON Serialization | **18,450 msgs/sec** | $\ge 1,000$ msgs/sec | **PASS (+1,745%)** |
+| **7** | **Peak Memory Consumption** | Peak Memory Delta | **0.84 MB** | $\le 50.0$ MB | **PASS (+5,850%)** |
+
+Comprehensive benchmark details documented in [`docs/benchmarks.md`](docs/benchmarks.md).
 
 ---
 
-## 16. Security & Safety
-- **Zero Live Broker Connections**: Enforced by static AST invariant tests (`backend/tests/test_no_brokerage_imports.py`). Any import of live order placement libraries triggers test failure.
-- **Zero Credential Leakage**: API secrets are stored strictly in environment variables; logs and endpoints mask or redact sensitive credentials.
+## Security
+
+### Security & Safety Invariants
+
+- **Paper-Only Execution Invariant**: Enforced by static AST invariant tests (`backend/tests/test_no_brokerage_imports.py` and `backend/tests/test_paper_only_invariant.py`). Order routing strictly follows `Signal` $\to$ `RiskManager` $\to$ `SimulatedBroker` $\to$ `PaperPortfolio`. Zero executable paths to live brokerage endpoints exist.
+- **Zero Credential Leakage**: API secrets are stored strictly in environment variables; logs, REST responses, WebSocket broadcasts, exports, and frontend bundles mask or redact credentials (`backend/tests/test_realtime_security.py`).
 - **Non-Root Docker Execution**: Docker containers run under an unprivileged `appuser` (UID 10001).
 - **Sanitized Error Handling**: Global 500 exception handlers catch unhandled errors and return generic error IDs with correlation tracking, preventing stack trace disclosure.
 - **CORS & Rate Limiting**: Strict CORS origin whitelisting and API rate limiting on public endpoints.
 
 ---
 
-## 17. Technology Stack
-- **Backend**: Python 3.11+, FastAPI, Pydantic v2, NumPy, Pandas, SciPy, XGBoost, Uvicorn, SQLite (WAL mode).
-- **Frontend**: React 18, TypeScript 5.6+, Vite 5.4+, TailwindCSS, Lucide Icons, Recharts.
-- **Testing & Verification**: Pytest, Pytest-Asyncio, Vitest, Testing Library, ESLint, Static AST Scanners.
-- **DevOps**: Docker (multi-stage non-root), GitHub Actions CI/CD.
-
----
-
-## 18. Installation
+## Installation
 
 ### Prerequisites
 - Python 3.11+
@@ -273,26 +316,26 @@ cd ..
 
 ---
 
-## 19. Running Locally
+## Development
 
 ### Start Backend API Server
 ```bash
-# From project root
+# From project root with active venv:
 python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
-The interactive Swagger API documentation is available at `http://localhost:8000/docs`.
+Interactive Swagger API documentation is available at `http://localhost:8000/docs`.
 
 ### Start Frontend Development Server
 ```bash
-# In another terminal
-cd frontend
+# From frontend directory:
 npm run dev
 ```
-Open `http://localhost:5173` in your browser.
+Development dashboard available at `http://localhost:5173`.
 
 ---
 
-## 20. Running the Demo
+## Demo
+
 AlgoTrade provides a 100% offline, deterministic end-to-end CLI demonstration covering all platform subsystems:
 
 ```bash
@@ -300,29 +343,29 @@ python -m backend.app.cli demo
 ```
 
 The demo executes a 10-stage offline demo workflow:
-1. **Dataset discovery and validation**: Loads and validates the 5,000-bar AAPL dataset.
+1. **Dataset discovery & validation**: Loads and validates the 5,000-bar AAPL dataset.
 2. **Deterministic backtest**: Runs `TimeSeriesMomentum` strategy with full metrics calculation.
-3. **Strategy comparison**: Compares 4 strategies side-by-side with risk-adjusted rankings.
-4. **XGBoost evaluation**: Evaluates out-of-sample classification performance and feature importance.
-5. **Jev status/mock advisory demonstration**: Demonstrates advisory context packaging and mock decision inference (`[MOCK / TEST PROVIDER]`).
-6. **Synthetic paper stream**: Initiates an in-memory streaming session tagged `[SYNTHETIC TEST FEED]`.
-7. **Risk rejection demonstration**: Submits an oversized order that triggers concentration risk rejection.
-8. **Simulated order execution**: Fills a compliant order, updates the portfolio, and calculates P&L.
+3. **Comparative strategy matrix**: Compares 4 strategies side-by-side with risk-adjusted rankings.
+4. **XGBoost classification metrics & feature importance**: Evaluates out-of-sample classification performance and feature importance.
+5. **Jev status / mock advisory**: Demonstrates advisory context packaging and mock decision inference (`[MOCK / TEST PROVIDER]`).
+6. **Synthetic stream paper replay**: Initiates an in-memory streaming session tagged `[SYNTHETIC TEST FEED]`.
+7. **Risk rejection**: Submits an oversized order that triggers concentration risk rejection.
+8. **Order execution & ledger update**: Fills a compliant order, updates the portfolio, and calculates P&L.
 9. **Failure recovery**: Simulates feed loss, verifies safety circuit breaker, and recovers.
-10. **Export**: Generates `demo_paper_export.json`, `demo_paper_trades.csv`, and `demo_experiment_report.md`.
+10. **Multi-format export**: Generates `demo_paper_export.json`, `demo_paper_trades.csv`, and `demo_experiment_report.md`.
 
 ---
 
-## 21. Running Tests
+## Tests
 
 ```bash
 # Run all backend unit and integration tests (229 passed, 1 skipped)
-pytest
+pytest -q
 
 # Run tests with coverage
 pytest --cov=backend/app --cov-report=term-missing
 
-# Run frontend tests
+# Run frontend tests (11 passed)
 cd frontend
 npm test -- --run
 cd ..
@@ -335,7 +378,7 @@ cd ..
 
 ---
 
-## 22. Docker
+## Docker
 
 ### Build and Run with Docker Compose
 ```bash
@@ -348,24 +391,30 @@ The application will be accessible at:
 
 ---
 
-## 23. CI/CD
+## CI/CD
+
 AlgoTrade utilizes GitHub Actions for continuous integration (`.github/workflows/ci.yml`). Every pull request and push to `main` executes:
 1. Python linting and code formatting verification.
 2. Static AST invariant scanning (verifying zero live-broker order imports).
-3. Backend test suite execution across Python 3.11.
-4. Frontend TypeScript type checking, linting, and Vitest suite execution.
-5. Production bundle build and asset size validation.
+3. Backend test suite execution across Python 3.11 (229 passed, 1 skipped).
+4. CLI 10-stage offline demo verification (`python -m backend.app.cli demo`).
+5. Frontend TypeScript type checking, linting, and Vitest suite execution (11 passed).
+6. Production bundle build and asset size validation (171.50 kB core bundle).
 
 ---
 
-## 24. Project Structure
+## Project Structure
+
 ```
 AlgoTrading/
 ├── backend/
 │   ├── app/
+│   │   ├── ai/              # Jev advisory client, schema, context, decision provider
 │   │   ├── api/             # REST routes & WebSocket endpoints
 │   │   ├── backtesting/     # Engine, broker, portfolio, risk manager, ledger
+│   │   ├── benchmark/       # Microsecond benchmarking suite & synthetic data
 │   │   ├── core/            # Configuration, logging, security, correlation
+│   │   ├── data/            # Loaders, cleaners, feature transformers
 │   │   ├── ml/              # Feature engineering, XGBoost training, cross-validation
 │   │   ├── paper/           # Paper trading service, feed aggregator, synchronizer
 │   │   ├── research/        # Datasets, walk-forward analysis, parameter sweeps
@@ -375,6 +424,7 @@ AlgoTrading/
 │   └── tests/               # 229+ unit, integration, and security tests
 ├── frontend/
 │   ├── src/
+│   │   ├── charts/          # Equity curves, drawdowns, candlestick charts
 │   │   ├── components/      # Modular UI components & layout
 │   │   ├── pages/           # Dashboard, Backtest, ML, Paper Trading, Settings
 │   │   ├── services/        # API client & WebSocket client
@@ -384,6 +434,7 @@ AlgoTrading/
 ├── data/demo/               # Seeded offline datasets (5,000 bars)
 ├── docs/                    # Architectural diagrams, benchmarks, specifications
 │   ├── assets/              # SVG UI mockups for all major interfaces
+│   ├── architecture.md      # Detailed system architecture specification
 │   ├── architecture.svg     # Full platform vector architecture diagram
 │   ├── technical-design.md  # Detailed technical design specification
 │   ├── project-summary.md   # Technical project summary
@@ -397,15 +448,18 @@ AlgoTrading/
 
 ---
 
-## 25. Limitations
+## Limitations
+
 AlgoTrade is designed as a simulation and research platform. Detailed discussion of assumptions and constraints is documented in [`docs/limitations.md`](docs/limitations.md):
 - **Slippage Calibration**: Uses a constant basis-point and quadratic impact model; does not reconstruct the full limit order book depth (L2/L3).
 - **Borrow Rates**: Short selling assumes infinite borrow availability without hard-to-borrow fees or borrow recalls.
 - **Latency Invariants**: Backtest assumes deterministic chronological ordering without network jitter or packet loss.
+- **Zero Real-Money Execution**: The platform contains zero live brokerage connections and zero live-money trading paths.
 
 ---
 
-## 26. Future Work
+## Future Work
+
 - **Limit Order Book (LOB) Simulation**: Level 2 order book matching engine with price-time priority queues.
 - **Factor Risk Models**: Multi-factor risk decomposition (Barra-style fundamental and statistical risk factors).
 - **Reinforcement Learning**: Deep Q-Learning (DQN) and PPO agents for automated execution slicing.
@@ -413,7 +467,8 @@ AlgoTrade is designed as a simulation and research platform. Detailed discussion
 
 ---
 
-## 27. Computer Science Concepts Demonstrated
+## Computer Science Concepts Demonstrated
+
 AlgoTrade was architected to demonstrate core computer science and software engineering principles:
 
 1. **Discrete-Event Simulation (State Machine)**:
@@ -435,7 +490,7 @@ AlgoTrade was architected to demonstrate core computer science and software engi
 
 ---
 
-## 28. Screenshot & Diagram Gallery
+## Screenshot & Diagram Gallery
 
 | View | Preview | Description |
 | :--- | :--- | :--- |
@@ -452,4 +507,5 @@ AlgoTrade was architected to demonstrate core computer science and software engi
 ---
 
 ## License
+
 MIT License. See [LICENSE](LICENSE) for details.

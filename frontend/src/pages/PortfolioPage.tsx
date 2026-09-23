@@ -58,7 +58,7 @@ export const PortfolioPage: React.FC = () => {
             Portfolio &amp; Position Manager
           </h1>
           <p style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
-            Institutional position tracking, cash accounting, long/short exposure, and multi-asset pairs breakdown
+            Portfolio-ready position tracking, cash accounting, long/short exposure, and multi-asset pairs breakdown
           </p>
         </div>
         <button onClick={fetchPortfolio} className="btn btn-secondary btn-sm">

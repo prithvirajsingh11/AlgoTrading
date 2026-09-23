@@ -71,7 +71,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
             Quantitative Research Dashboard
           </h1>
           <p style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
-            Institutional backtest monitoring, portfolio state, and active strategy registry
+            Production-oriented backtest monitoring, portfolio state, and active strategy registry
           </p>
         </div>
         <div style={{ display: "flex", gap: "0.5rem" }}>

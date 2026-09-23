@@ -89,7 +89,7 @@ export const App: React.FC = () => {
         <Suspense
           fallback={
             <div className="flex justify-center items-center min-h-[400px]">
-              <LoadingSpinner message="Loading institutional module..." />
+              <LoadingSpinner message="Loading research module..." />
             </div>
           }
         >
